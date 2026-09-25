@@ -110,8 +110,6 @@
             z-index: 90;
         }
     </style>
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
 </head>
 <body>
 
@@ -131,19 +129,22 @@
         <button class="close-btn" onclick="closeModal()">Cancel</button>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://gstatic.com";
+        import { getDatabase, ref, onValue, set } from "https://gstatic.com";
+
         const firebaseConfig = {
             apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
-            authDomain: "the-golden-page.firebaseapp.com",
-            databaseURL: "https://the-golden-page-default-rtdb.firebaseio.com/",
+            authDomain: "://firebaseapp.com",
+            databaseURL: "https://the-golden-page-default-rtdb.firebaseio.com",
             projectId: "the-golden-page",
             storageBucket: "the-golden-page.firebasestorage.app",
             messagingSenderId: "486401864679",
             appId: "1:486401864679:web:f2ef889ee20fd36a44342"
         };
         
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
         const grid = document.getElementById('grid-container');
         const modal = document.getElementById('purchase-modal');
@@ -160,7 +161,8 @@
             grid.appendChild(pixel);
         }
 
-        database.ref('pixels').on('value', (snapshot) => {
+        const pixelsRef = ref(database, 'pixels');
+        onValue(pixelsRef, (snapshot) => {
             const data = snapshot.val() || {};
             for (let i = 1; i <= totalPixels; i++) {
                 const pixelDiv = document.getElementById(`pixel-${i}`);
@@ -182,7 +184,7 @@
             }
         });
 
-        function closeModal() {
+        window.closeModal = function() {
             modal.style.display = 'none';
             overlay.style.display = 'none';
         }
@@ -192,7 +194,8 @@
             const link = document.getElementById('site-url').value.trim();
 
             if(logo && link) {
-                database.ref('pixels/' + selectedPixelId).set({
+                const specificPixelRef = ref(database, 'pixels/' + selectedPixelId);
+                set(specificPixelRef, {
                     logo: logo,
                     link: link
                 }).then(() => {
