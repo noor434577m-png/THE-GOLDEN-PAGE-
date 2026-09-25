@@ -24,36 +24,37 @@
             margin-top: 0;
             margin-bottom: 25px;
         }
+        #grid-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin: 20px auto;
+            padding: 10px 0;
+        }
         #grid-container { 
             display: grid; 
-            grid-template-columns: repeat(50, 15px); 
+            grid-template-columns: repeat(50, 16px); 
+            grid-template-rows: repeat(50, 16px); 
             gap: 1px; 
             justify-content: center; 
-            margin: 20px auto; 
-            max-width: 95%; 
+            width: 850px; 
+            margin: 0 auto;
             background: #fff;
             padding: 8px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            overflow-x: auto; 
         }
         .pixel { 
-            width: 15px; 
-            height: 15px; 
+            width: 16px; 
+            height: 16px; 
             background-color: #f0f0f0; 
             border: 1px solid #e5e5e5; 
             cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
+            box-sizing: border-box;
             background-size: cover; 
             background-position: center;
-            transition: all 0.1s ease;
         }
         .pixel:hover { 
             background-color: #d4af37; 
-            transform: scale(1.2);
-            z-index: 10;
         }
         #purchase-modal { 
             display: none; 
@@ -110,7 +111,6 @@
             z-index: 90;
         }
     </style>
-    <!-- Stable Global Script CDN -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
 </head>
@@ -119,7 +119,9 @@
     <h1>✨ The Golden Page ✨</h1>
     <p class="subtitle">Own a permanent advertising pixel space for just \$1 per pixel!</p>
 
-    <div id="grid-container"></div>
+    <div id="grid-wrapper">
+        <div id="grid-container"></div>
+    </div>
 
     <div id="modal-overlay" onclick="closeModal()"></div>
     <div id="purchase-modal">
@@ -140,7 +142,7 @@
             projectId: "the-golden-page",
             storageBucket: "the-golden-page.firebasestorage.app",
             messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
+            appId: "1:486401864679:web:f2ef889ee20fd36a44342"
         };
         
         firebase.initializeApp(firebaseConfig);
@@ -154,40 +156,44 @@
 
         var totalPixels = 2500;
         for (var i = 1; i <= totalPixels; i++) {
-            (function(index) {
-                var pixel = document.createElement('div');
-                pixel.className = 'pixel';
-                pixel.id = 'pixel-' + index;
-                pixel.title = 'Block #' + index + ' - Available for $1';
-                grid.appendChild(pixel);
-            })(i);
+            var pixel = document.createElement('div');
+            pixel.className = 'pixel';
+            pixel.id = 'pixel-' + i;
+            pixel.title = 'Block #' + i + ' - Available for $1';
+            grid.appendChild(pixel);
         }
 
         database.ref('pixels').on('value', function(snapshot) {
             var data = snapshot.val() || {};
             for (var i = 1; i <= totalPixels; i++) {
                 var pixelDiv = document.getElementById('pixel-' + i);
-                if (data[i]) {
-                    pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
-                    pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
-                    pixelDiv.style.backgroundColor = '#fff';
-                    (function(link) {
-                        pixelDiv.onclick = function() { window.open(link, '_blank'); };
-                    })(data[i].link);
-                } else {
-                    pixelDiv.style.backgroundImage = 'none';
-                    pixelDiv.style.backgroundColor = '#f0f0f0';
-                    (function(index) {
-                        pixelDiv.onclick = function() {
-                            selectedPixelId = index;
-                            pixelDisplay.innerText = index;
-                            modal.style.display = 'block';
-                            overlay.style.display = 'block';
-                        };
-                    })(i);
+                if (pixelDiv) {
+                    if (data[i]) {
+                        pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
+                        pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
+                        pixelDiv.style.backgroundColor = '#fff';
+                        setClickAction(pixelDiv, data[i].link);
+                    } else {
+                        pixelDiv.style.backgroundImage = 'none';
+                        pixelDiv.style.backgroundColor = '#f0f0f0';
+                        setOpenModalAction(pixelDiv, i);
+                    }
                 }
             }
         });
+
+        function setClickAction(element, link) {
+            element.onclick = function() { window.open(link, '_blank'); };
+        }
+
+        function setOpenModalAction(element, index) {
+            element.onclick = function() {
+                selectedPixelId = index;
+                pixelDisplay.innerText = index;
+                modal.style.display = 'block';
+                overlay.style.display = 'block';
+            };
+        }
 
         window.closeModal = function() {
             modal.style.display = 'none';
