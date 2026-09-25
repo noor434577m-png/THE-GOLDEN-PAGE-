@@ -46,7 +46,6 @@
         .pixel { 
             width: 16px; 
             height: 16px; 
-            /* === تم تغيير لون المربعات الفارغة هنا إلى الذهبي الفاتح جداً === */
             background-color: #f7f4eb; 
             border: 1px solid #e5dfcf; 
             cursor: pointer; 
@@ -133,23 +132,7 @@
         <button class="close-btn" onclick="closeModal()">Cancel</button>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://gstatic.com";
-        import { getDatabase, ref, onValue, set } from "https://gstatic.com";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
-            authDomain: "://firebaseapp.com",
-            databaseURL: "https://firebaseio.com",
-            projectId: "the-golden-page",
-            storageBucket: "the-golden-page.firebasestorage.app",
-            messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd36a44342"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
+    <script>
         const grid = document.getElementById('grid-container');
         const modal = document.getElementById('purchase-modal');
         const overlay = document.getElementById('modal-overlay');
@@ -157,42 +140,35 @@
         let selectedPixelId = null;
 
         const totalPixels = 2500;
-        
+        const savedPixels = JSON.parse(localStorage.getItem('golden_pixels')) || {};
+
+        // بناء الـ 2500 مربع بشكل فوري ومستقل تماماً بدون انتظار أي خوادم
         for (let i = 1; i <= totalPixels; i++) {
             const pixel = document.createElement('div');
             pixel.className = 'pixel';
             pixel.id = `pixel-${i}`;
-            pixel.title = `Block #${i} - Available for $1`;
-            pixel.addEventListener('click', () => {
-                selectedPixelId = i;
-                pixelDisplay.innerText = i;
-                modal.style.display = 'block';
-                overlay.style.display = 'block';
-            });
+            
+            if (savedPixels[i]) {
+                // إذا كان المربع محجوزاً مسبقاً في الذاكرة المحلية
+                pixel.style.backgroundImage = `url('${savedPixels[i].logo}')`;
+                pixel.style.backgroundColor = '#fff';
+                pixel.title = `Ad #${i} - Click to visit`;
+                pixel.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.open(savedPixels[i].link, '_blank');
+                });
+            } else {
+                // إذا كان المربع فارغاً
+                pixel.title = `Block #${i} - Available for $1`;
+                pixel.addEventListener('click', () => {
+                    selectedPixelId = i;
+                    pixelDisplay.innerText = i;
+                    modal.style.display = 'block';
+                    overlay.style.display = 'block';
+                });
+            }
             grid.appendChild(pixel);
         }
-
-        const pixelsRef = ref(database, 'pixels');
-        onValue(pixelsRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            for (let i = 1; i <= totalPixels; i++) {
-                const pixelDiv = document.getElementById(`pixel-${i}`);
-                if (pixelDiv) {
-                    if (data[i]) {
-                        pixelDiv.style.backgroundImage = `url('${data[i].logo}')`;
-                        pixelDiv.title = `Ad #${i} - Click to visit website`;
-                        pixelDiv.style.backgroundColor = '#fff';
-                        pixelDiv.onclick = (e) => {
-                            e.stopPropagation();
-                            window.open(data[i].link, '_blank');
-                        };
-                    } else {
-                        pixelDiv.style.backgroundImage = 'none';
-                        pixelDiv.style.backgroundColor = '#f7f4eb'; // إعادة تعيين اللون عند مسح البيانات
-                    }
-                }
-            }
-        });
 
         window.closeModal = function() {
             modal.style.display = 'none';
@@ -204,18 +180,20 @@
             const link = document.getElementById('site-url').value.trim();
 
             if(logo && link) {
-                const specificPixelRef = ref(database, 'pixels/' + selectedPixelId);
-                set(specificPixelRef, {
-                    logo: logo,
-                    link: link
-                }).then(() => {
-                    alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
-                    closeModal();
-                    document.getElementById('logo-url').value = '';
-                    document.getElementById('site-url').value = '';
-                }).catch((error) => {
-                    alert("Database Save Error: " + error.message);
-                });
+                // حفظ البيانات محلياً بشكل فوري
+                savedPixels[selectedPixelId] = { logo: logo, link: link };
+                localStorage.setItem('golden_pixels', JSON.stringify(savedPixels));
+
+                // تحديث شكل المربع فوراً في الشاشة
+                const pixelDiv = document.getElementById(`pixel-${selectedPixelId}`);
+                pixelDiv.style.backgroundImage = `url('${logo}')`;
+                pixelDiv.style.backgroundColor = '#fff';
+                pixelDiv.onclick = () => window.open(link, '_blank');
+
+                alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved.");
+                closeModal();
+                document.getElementById('logo-url').value = '';
+                document.getElementById('site-url').value = '';
             } else {
                 alert("Please fill in both the Image URL and Website URL fields.");
             }
