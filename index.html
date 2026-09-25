@@ -117,7 +117,7 @@
 <body>
 
     <h1>✨ The Golden Page ✨</h1>
-    <p class="subtitle">Own a permanent advertising pixel space for just \$1 per pixel!</p>
+    <p class="subtitle">Own a permanent advertising pixel space for just $1 per pixel!</p>
 
     <div id="grid-wrapper">
         <div id="grid-container"></div>
@@ -156,7 +156,6 @@
 
         var totalPixels = 2500;
         
-        // رسم المربعات فوراً في الصفحة بشكل مستقل ومضمون
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -166,7 +165,6 @@
             grid.appendChild(pixel);
         }
 
-        // تحديث المربعات المحجوزة فقط عند جلب البيانات من السيرفر
         database.ref('pixels').on('value', function(snapshot) {
             var data = snapshot.val() || {};
             for (var i = 1; i <= totalPixels; i++) {
