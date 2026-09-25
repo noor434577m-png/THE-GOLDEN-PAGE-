@@ -46,8 +46,9 @@
         .pixel { 
             width: 16px; 
             height: 16px; 
-            background-color: #f0f0f0; 
-            border: 1px solid #e5e5e5; 
+            /* === تم تغيير لون المربعات الفارغة هنا إلى الذهبي الفاتح جداً === */
+            background-color: #f7f4eb; 
+            border: 1px solid #e5dfcf; 
             cursor: pointer; 
             box-sizing: border-box;
             background-size: cover; 
@@ -111,13 +112,11 @@
             z-index: 90;
         }
     </style>
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
 </head>
 <body>
 
     <h1>✨ The Golden Page ✨</h1>
-    <p class="subtitle">Own a permanent advertising pixel space for just $1 per pixel!</p>
+    <p class="subtitle">Own a permanent advertising pixel space for just \$1 per pixel!</p>
 
     <div id="grid-wrapper">
         <div id="grid-container"></div>
@@ -134,81 +133,87 @@
         <button class="close-btn" onclick="closeModal()">Cancel</button>
     </div>
 
-    <script>
-        var firebaseConfig = {
+    <script type="module">
+        import { initializeApp } from "https://gstatic.com";
+        import { getDatabase, ref, onValue, set } from "https://gstatic.com";
+
+        const firebaseConfig = {
             apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
             authDomain: "://firebaseapp.com",
             databaseURL: "https://firebaseio.com",
             projectId: "the-golden-page",
             storageBucket: "the-golden-page.firebasestorage.app",
             messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
+            appId: "1:486401864679:web:f2ef889ee20fd36a44342"
         };
-        firebase.initializeApp(firebaseConfig);
-        var database = firebase.database();
-
-        var grid = document.getElementById('grid-container');
-        var modal = document.getElementById('purchase-modal');
-        var overlay = document.getElementById('modal-overlay');
-        var pixelDisplay = document.getElementById('pixel-number-display');
-        var selectedPixelId = null;
-
-        var totalPixels = 2500;
         
-        for (var i = 1; i <= totalPixels; i++) {
-            var pixel = document.createElement('div');
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        const grid = document.getElementById('grid-container');
+        const modal = document.getElementById('purchase-modal');
+        const overlay = document.getElementById('modal-overlay');
+        const pixelDisplay = document.getElementById('pixel-number-display');
+        let selectedPixelId = null;
+
+        const totalPixels = 2500;
+        
+        for (let i = 1; i <= totalPixels; i++) {
+            const pixel = document.createElement('div');
             pixel.className = 'pixel';
-            pixel.id = 'pixel-' + i;
-            pixel.title = 'Block #' + i + ' - Available for $1';
-            setOpenModalAction(pixel, i);
+            pixel.id = `pixel-${i}`;
+            pixel.title = `Block #${i} - Available for $1`;
+            pixel.addEventListener('click', () => {
+                selectedPixelId = i;
+                pixelDisplay.innerText = i;
+                modal.style.display = 'block';
+                overlay.style.display = 'block';
+            });
             grid.appendChild(pixel);
         }
 
-        database.ref('pixels').on('value', function(snapshot) {
-            var data = snapshot.val() || {};
-            for (var i = 1; i <= totalPixels; i++) {
-                var pixelDiv = document.getElementById('pixel-' + i);
-                if (pixelDiv && data[i]) {
-                    pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
-                    pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
-                    pixelDiv.style.backgroundColor = '#fff';
-                    setClickAction(pixelDiv, data[i].link);
+        const pixelsRef = ref(database, 'pixels');
+        onValue(pixelsRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            for (let i = 1; i <= totalPixels; i++) {
+                const pixelDiv = document.getElementById(`pixel-${i}`);
+                if (pixelDiv) {
+                    if (data[i]) {
+                        pixelDiv.style.backgroundImage = `url('${data[i].logo}')`;
+                        pixelDiv.title = `Ad #${i} - Click to visit website`;
+                        pixelDiv.style.backgroundColor = '#fff';
+                        pixelDiv.onclick = (e) => {
+                            e.stopPropagation();
+                            window.open(data[i].link, '_blank');
+                        };
+                    } else {
+                        pixelDiv.style.backgroundImage = 'none';
+                        pixelDiv.style.backgroundColor = '#f7f4eb'; // إعادة تعيين اللون عند مسح البيانات
+                    }
                 }
             }
         });
 
-        function setClickAction(element, link) {
-            element.onclick = function() { window.open(link, '_blank'); };
-        }
-
-        function setOpenModalAction(element, index) {
-            element.onclick = function() {
-                selectedPixelId = index;
-                pixelDisplay.innerText = index;
-                modal.style.display = 'block';
-                overlay.style.display = 'block';
-            };
-        }
-
         window.closeModal = function() {
             modal.style.display = 'none';
             overlay.style.display = 'none';
-        };
+        }
 
-        document.getElementById('pay-btn').addEventListener('click', function() {
-            var logo = document.getElementById('logo-url').value.trim();
-            var link = document.getElementById('site-url').value.trim();
+        document.getElementById('pay-btn').addEventListener('click', () => {
+            const logo = document.getElementById('logo-url').value.trim();
+            const link = document.getElementById('site-url').value.trim();
 
             if(logo && link) {
-                database.ref('pixels/' + selectedPixelId).set({
+                const specificPixelRef = ref(database, 'pixels/' + selectedPixelId);
+                set(specificPixelRef, {
                     logo: logo,
                     link: link
-                }).then(function() {
+                }).then(() => {
                     alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
                     closeModal();
                     document.getElementById('logo-url').value = '';
                     document.getElementById('site-url').value = '';
-                }).catch(function(error) {
+                }).catch((error) => {
                     alert("Database Save Error: " + error.message);
                 });
             } else {
