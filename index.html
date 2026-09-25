@@ -110,6 +110,9 @@
             z-index: 90;
         }
     </style>
+    <!-- Stable Global Script CDN -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
 </head>
 <body>
 
@@ -129,57 +132,59 @@
         <button class="close-btn" onclick="closeModal()">Cancel</button>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://gstatic.com";
-        import { getDatabase, ref, onValue, set } from "https://gstatic.com";
-
-        const firebaseConfig = {
+    <script>
+        var firebaseConfig = {
             apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
             authDomain: "://firebaseapp.com",
-            databaseURL: "https://the-golden-page-default-rtdb.firebaseio.com",
+            databaseURL: "https://firebaseio.com",
             projectId: "the-golden-page",
             storageBucket: "the-golden-page.firebasestorage.app",
             messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd36a44342"
+            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
         };
         
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+        firebase.initializeApp(firebaseConfig);
+        var database = firebase.database();
 
-        const grid = document.getElementById('grid-container');
-        const modal = document.getElementById('purchase-modal');
-        const overlay = document.getElementById('modal-overlay');
-        const pixelDisplay = document.getElementById('pixel-number-display');
-        let selectedPixelId = null;
+        var grid = document.getElementById('grid-container');
+        var modal = document.getElementById('purchase-modal');
+        var overlay = document.getElementById('modal-overlay');
+        var pixelDisplay = document.getElementById('pixel-number-display');
+        var selectedPixelId = null;
 
-        const totalPixels = 2500;
-        for (let i = 1; i <= totalPixels; i++) {
-            const pixel = document.createElement('div');
-            pixel.className = 'pixel';
-            pixel.id = `pixel-${i}`;
-            pixel.title = `Block #${i} - Available for $1`;
-            grid.appendChild(pixel);
+        var totalPixels = 2500;
+        for (var i = 1; i <= totalPixels; i++) {
+            (function(index) {
+                var pixel = document.createElement('div');
+                pixel.className = 'pixel';
+                pixel.id = 'pixel-' + index;
+                pixel.title = 'Block #' + index + ' - Available for $1';
+                grid.appendChild(pixel);
+            })(i);
         }
 
-        const pixelsRef = ref(database, 'pixels');
-        onValue(pixelsRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            for (let i = 1; i <= totalPixels; i++) {
-                const pixelDiv = document.getElementById(`pixel-${i}`);
+        database.ref('pixels').on('value', function(snapshot) {
+            var data = snapshot.val() || {};
+            for (var i = 1; i <= totalPixels; i++) {
+                var pixelDiv = document.getElementById('pixel-' + i);
                 if (data[i]) {
-                    pixelDiv.style.backgroundImage = `url('${data[i].logo}')`;
-                    pixelDiv.title = `Ad #${i} - Click to visit website`;
+                    pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
+                    pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
                     pixelDiv.style.backgroundColor = '#fff';
-                    pixelDiv.onclick = () => window.open(data[i].link, '_blank');
+                    (function(link) {
+                        pixelDiv.onclick = function() { window.open(link, '_blank'); };
+                    })(data[i].link);
                 } else {
                     pixelDiv.style.backgroundImage = 'none';
                     pixelDiv.style.backgroundColor = '#f0f0f0';
-                    pixelDiv.onclick = () => {
-                        selectedPixelId = i;
-                        pixelDisplay.innerText = i;
-                        modal.style.display = 'block';
-                        overlay.style.display = 'block';
-                    };
+                    (function(index) {
+                        pixelDiv.onclick = function() {
+                            selectedPixelId = index;
+                            pixelDisplay.innerText = index;
+                            modal.style.display = 'block';
+                            overlay.style.display = 'block';
+                        };
+                    })(i);
                 }
             }
         });
@@ -187,23 +192,22 @@
         window.closeModal = function() {
             modal.style.display = 'none';
             overlay.style.display = 'none';
-        }
+        };
 
-        document.getElementById('pay-btn').addEventListener('click', () => {
-            const logo = document.getElementById('logo-url').value.trim();
-            const link = document.getElementById('site-url').value.trim();
+        document.getElementById('pay-btn').addEventListener('click', function() {
+            var logo = document.getElementById('logo-url').value.trim();
+            var link = document.getElementById('site-url').value.trim();
 
             if(logo && link) {
-                const specificPixelRef = ref(database, 'pixels/' + selectedPixelId);
-                set(specificPixelRef, {
+                database.ref('pixels/' + selectedPixelId).set({
                     logo: logo,
                     link: link
-                }).then(() => {
+                }).then(function() {
                     alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
                     closeModal();
                     document.getElementById('logo-url').value = '';
                     document.getElementById('site-url').value = '';
-                }).catch((error) => {
+                }).catch(function(error) {
                     alert("Database Save Error: " + error.message);
                 });
             } else {
