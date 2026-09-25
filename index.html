@@ -142,7 +142,7 @@
             projectId: "the-golden-page",
             storageBucket: "the-golden-page.firebasestorage.app",
             messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd36a44342"
+            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
         };
         
         firebase.initializeApp(firebaseConfig);
@@ -155,29 +155,27 @@
         var selectedPixelId = null;
 
         var totalPixels = 2500;
+        
+        // رسم المربعات فوراً في الصفحة بشكل مستقل ومضمون
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
             pixel.id = 'pixel-' + i;
             pixel.title = 'Block #' + i + ' - Available for $1';
+            setOpenModalAction(pixel, i);
             grid.appendChild(pixel);
         }
 
+        // تحديث المربعات المحجوزة فقط عند جلب البيانات من السيرفر
         database.ref('pixels').on('value', function(snapshot) {
             var data = snapshot.val() || {};
             for (var i = 1; i <= totalPixels; i++) {
                 var pixelDiv = document.getElementById('pixel-' + i);
-                if (pixelDiv) {
-                    if (data[i]) {
-                        pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
-                        pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
-                        pixelDiv.style.backgroundColor = '#fff';
-                        setClickAction(pixelDiv, data[i].link);
-                    } else {
-                        pixelDiv.style.backgroundImage = 'none';
-                        pixelDiv.style.backgroundColor = '#f0f0f0';
-                        setOpenModalAction(pixelDiv, i);
-                    }
+                if (pixelDiv && data[i]) {
+                    pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
+                    pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
+                    pixelDiv.style.backgroundColor = '#fff';
+                    setClickAction(pixelDiv, data[i].link);
                 }
             }
         });
