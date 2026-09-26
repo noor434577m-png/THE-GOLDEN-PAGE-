@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- This meta tag forces the browser to unblock Firebase and draw the grid immediately -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseio.com https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://*.firebaseio.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com;">
     <title>The Golden Page - Pixel Advertising Board</title>
     <style>
         body { 
@@ -153,11 +155,11 @@
         var firebaseConfig = {
             apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
             authDomain: "://firebaseapp.com",
-            databaseURL: "https://the-golden-page-default-rtdb.firebaseio.com",
+            databaseURL: "https://firebaseio.com",
             projectId: "the-golden-page",
             storageBucket: "the-golden-page.firebasestorage.app",
             messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
+            appId: "1:486401864679:web:f2ef889ee20fd36a44342"
         };
         
         firebase.initializeApp(firebaseConfig);
