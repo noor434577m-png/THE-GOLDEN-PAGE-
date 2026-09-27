@@ -120,8 +120,6 @@
             z-index: 90;
         }
     </style>
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
 </head>
 <body>
 
@@ -150,27 +148,15 @@
     </div>
 
     <script>
-        var firebaseConfig = {
-            apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
-            authDomain: "the-golden-page.firebaseapp.com",
-            databaseURL: "https://the-golden-page-default-rtdb.firebaseio.com",
-            projectId: "the-golden-page",
-            storageBucket: "the-golden-page.firebasestorage.app",
-            messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
-        };
-        
-        firebase.initializeApp(firebaseConfig);
-        var database = firebase.database();
-
+        var dbUrl = "https://firebaseio.com";
         var grid = document.getElementById('grid-container');
         var modal = document.getElementById('purchase-modal');
         var overlay = document.getElementById('modal-overlay');
         var pixelDisplay = document.getElementById('pixel-number-display');
         var selectedPixelId = null;
-
         var totalPixels = 2500;
-        
+
+        // 1. رسم الشبكة فوراً وبشكل حتمي ومستقل لمنع بياض الصفحة نهائياً
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -180,24 +166,26 @@
             grid.appendChild(pixel);
         }
 
-        database.ref('pixels').on('value', function(snapshot) {
-            var data = snapshot.val() || {};
-            for (var i = 1; i <= totalPixels; i++) {
-                var pixelDiv = document.getElementById('pixel-' + i);
-                if (pixelDiv) {
-                    if (data[i]) {
-                        pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
-                        pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
-                        pixelDiv.style.backgroundColor = '#fff';
-                        setClickAction(pixelDiv, data[i].link);
-                    } else {
-                        pixelDiv.style.backgroundImage = 'none';
-                        pixelDiv.style.backgroundColor = '#f7f4eb';
-                        setOpenModalAction(pixelDiv, i);
+        // 2. جلب البيانات السحابية عبر بروتوكول الويب الصافي لتفادي حظر المتصفحات
+        function loadLivePixels() {
+            fetch(dbUrl)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (!data) return;
+                    for (var i = 1; i <= totalPixels; i++) {
+                        if (data[i]) {
+                            var pixelDiv = document.getElementById('pixel-' + i);
+                            if (pixelDiv) {
+                                pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
+                                pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
+                                pixelDiv.style.backgroundColor = '#fff';
+                                setClickAction(pixelDiv, data[i].link);
+                            }
+                        }
                     }
-                }
-            }
-        });
+                })
+                .catch(function(error) { console.log("Fetch Error:", error); });
+        }
 
         function setClickAction(element, link) {
             element.onclick = function() { window.open(link, '_blank'); };
@@ -217,26 +205,37 @@
             overlay.style.display = 'none';
         };
 
+        // 3. رفع وحفظ البيانات سحابياً بشكل مباشر وآمن للجميع
         document.getElementById('pay-btn').addEventListener('click', function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
 
-            if(logo && link) {
-                database.ref('pixels/' + selectedPixelId).set({
-                    logo: logo,
-                    link: link
-                }).then(function() {
-                    alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
-                    closeModal();
-                    document.getElementById('logo-url').value = '';
-                    document.getElementById('site-url').value = '';
-                }).catch(function(error) {
-                    alert("Database Save Error: " + error.message);
-                });
+            if (logo && link) {
+                var updateUrl = "https://firebaseio.com" + selectedPixelId + ".json";
+                var payload = JSON.stringify({ logo: logo, link: link });
+
+                fetch(updateUrl, { method: "PUT", body: payload })
+                    .then(function(response) {
+                        if (response.ok) {
+                            alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
+                            closeModal();
+                            document.getElementById('logo-url').value = '';
+                            document.getElementById('site-url').value = '';
+                            loadLivePixels();
+                        } else {
+                            alert("Server error, please check Firebase Rules setup.");
+                        }
+                    })
+                    .catch(function(error) {
+                        alert("Save Error: " + error.message);
+                    });
             } else {
                 alert("Please fill in both the Image URL and Website URL fields.");
             }
         });
+
+        // تشغيل الجلب التلقائي الفوري للبيانات
+        loadLivePixels();
     </script>
 </body>
 </html>
