@@ -24,28 +24,37 @@
             display: inline-block;
         }
         
-        /* شبكة الـ 2500 مربع الصافية والمستقرة والمقاومة للاختفاء */
+        /* تحويل اللوحة إلى مصفوفة شبكية مادية حقيقية وملموسة */
         #pixel-board { 
-            position: relative;
+            display: grid;
+            grid-template-columns: repeat(50, 15px); /* 50 عمود */
+            grid-template-rows: repeat(50, 15px);    /* 50 صف */
             width: 750px; 
             height: 750px; 
             background-color: #ffffff; 
-            background-image: linear-gradient(to right, #ccc 1px, transparent 1px), linear-gradient(to bottom, #ccc 1px, transparent 1px);
-            background-size: 15px 15px; /* تقسيم هندسي صلب لـ 2500 مربع */
-            cursor: crosshair;
         }
         
-        /* عناصر الصور عند النشر */
-        .user-pixel {
-            position: absolute;
+        /* تصميم المربعات المادية القابلة للنقر الفوري */
+        .grid-square {
             width: 15px;
             height: 15px;
+            border: 1px solid #e0e0e0; 
             box-sizing: border-box;
-            z-index: 10;
+            cursor: pointer;
+            background-color: #ffffff;
         }
-        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+        .grid-square:hover {
+            background-color: #ffeaa7; 
+        }
+        
+        /* تصميم البكسل عند النشر داخل الخلية */
+        .grid-square img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            display: block;
+        }
 
-        /* النافذة المنبثقة لطلب الدفع والنشر */
         .modal {
             display: none; 
             position: fixed; 
@@ -86,7 +95,7 @@
     </div>
 
     <div class="board-container">
-        <!-- اللوحة الشبكية الصافية -->
+        <!-- اللوحة التي ستمتلئ بـ 2500 زر حقيقي -->
         <div id="pixel-board"></div>
     </div>
 
@@ -113,11 +122,10 @@
     </div>
 
     <script>
-        // دمج محفظتك ورابط قاعدة بياناتك المعتمدين بدقة وفولاذية
+        // إعدادات محفظتك وقاعدة بيانات الفايربيس الثابتة والمؤمنة
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
-        const PIXEL_SIZE = 15;
-
+        
         const pixelBoard = document.getElementById('pixel-board');
         const paymentModal = document.getElementById('payment-modal');
         const btnMetaMask = document.getElementById('btn-metamask');
@@ -129,7 +137,34 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. جلب البيانات من Firebase وتحديث المربعات المشغولة بالكامل
+        // 1. بناء الـ 2500 مربع مادياً فور فتح الصفحة لضمان استجابة النقر واللمس 100%
+        function buildBlankGrid() {
+            pixelBoard.innerHTML = ''; 
+            for (let row = 0; row < 50; row++) {
+                for (let col = 0; col < 50; col++) {
+                    const xCoord = col * 15;
+                    const yCoord = row * 15;
+                    const cellId = `sq_${xCoord}_${yCoord}`;
+
+                    const square = document.createElement('div');
+                    square.className = 'grid-square';
+                    square.id = cellId;
+
+                    // تفعيل حدث النقر الفوري على كل زر مستقل في الشبكة
+                    square.onclick = function() {
+                        if (takenPixels[`${xCoord}_${yCoord}`]) return; // منع التفاعل لو كان المربع مباعاً مسبقاً
+                        currentX = xCoord;
+                        currentY = yCoord;
+                        coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
+                        paymentModal.style.display = 'flex';
+                    };
+
+                    pixelBoard.appendChild(square);
+                }
+            }
+        }
+
+        // 2. تحديث المربعات المشغولة من قاعدة البيانات في الخلفية دون تعطيل واجهة العرض
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -137,53 +172,27 @@
                 if (!data) return;
                 takenPixels = data; 
                 
-                // مسح الصور القديمة قبل إعادة الرسم لمنع التكرار
-                const oldPixels = pixelBoard.querySelectorAll('.user-pixel');
-                oldPixels.forEach(el => el.remove());
-
                 Object.keys(data).forEach(key => {
                     const p = data[key];
                     const [x, y] = key.split('_');
+                    const sq = document.getElementById(`sq_${x}_${y}`);
                     
-                    const pixelDiv = document.createElement('div');
-                    pixelDiv.className = 'user-pixel';
-                    pixelDiv.style.left = `${x}px`;
-                    pixelDiv.style.top = `${y}px`;
-
-                    pixelDiv.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
-                    pixelBoard.appendChild(pixelDiv);
+                    // قفل المربع نهائياً واستبداله بصورة ورابط العميل الأصلي ومنع تعديله
+                    if (sq) {
+                        sq.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
+                        sq.style.cursor = 'default';
+                    }
                 });
             }).catch(err => console.log(err));
         }
 
-        // تشغيل مباشر ومستقل لجلب البيانات
+        // إطلاق مصفوفة المربعات فوراً
+        buildBlankGrid();
         loadPixelsFromFirebase();
-
-        // 2. معالجة نقرة المستخدم على اللوحة الشبكية واحتساب إحداثيات المربع بدقة
-        pixelBoard.onclick = function(e) {
-            // إذا ضغط على صورة منشورة مسبقاً (مربع مباع)، يفتح رابط العميل ولا يفتح نافذة الشراء
-            if (e.target !== pixelBoard) return;
-
-            const rect = pixelBoard.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
-
-            currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
-            currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
-
-            // شرط منع تعديل أو حجز المربع المباع مسبقاً نهائياً
-            if (takenPixels[`${currentX}_${currentY}`]) {
-                alert("This square is already taken and cannot be modified!");
-                return;
-            }
-
-            coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
-            paymentModal.style.display = 'flex';
-        };
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // دالة التوجيه العميقة للجوال لمنع تعطل المتصفح العادي (سفاري/كروم)
+        // دالة التوجيه الذكي للروابط العميقة (Deep Links) لحل مشكلة متصفحات الآيفون
         function handleMobileRedirect(walletType) {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             const hasWallet = (typeof window.ethereum !== 'undefined');
@@ -200,7 +209,7 @@
             return false; 
         }
 
-        // 3. معالجة الدفع الفولاذي وضمان عدم الحجز والتعديل إلا بعد وصول الأموال
+        // معالجة الدفع والتحقق الفولاذي والرفع لـ Firebase
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -222,5 +231,3 @@
                 walletButton.disabled = true;
                 walletButton.innerText = "Processing...";
                 
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
