@@ -24,11 +24,11 @@
             display: inline-block;
         }
         
-        /* تحويل اللوحة إلى مصفوفة شبكية مادية حقيقية وملموسة */
+        /* مصفوفة شبكية مادية حقيقية وملموسة من 2500 مربع (50 عمود × 50 صف) */
         #pixel-board { 
             display: grid;
-            grid-template-columns: repeat(50, 15px); /* 50 عمود */
-            grid-template-rows: repeat(50, 15px);    /* 50 صف */
+            grid-template-columns: repeat(50, 15px); 
+            grid-template-rows: repeat(50, 15px);    
             width: 750px; 
             height: 750px; 
             background-color: #ffffff; 
@@ -122,7 +122,7 @@
     </div>
 
     <script>
-        // إعدادات محفظتك وقاعدة بيانات الفايربيس الثابتة والمؤمنة
+        // إعدادات محفظتك وقاعدة بيانات الفايربيس الحقيقية الثابتة والمؤمنة
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
         
@@ -137,7 +137,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. بناء الـ 2500 مربع مادياً فور فتح الصفحة لضمان استجابة النقر واللمس 100%
+        // 1. بناء الـ 2500 مربع مادياً فور فتح الصفحة لضمان الاستجابة 100% ومنع أي حظر أو اختفاء
         function buildBlankGrid() {
             pixelBoard.innerHTML = ''; 
             for (let row = 0; row < 50; row++) {
@@ -177,16 +177,17 @@
                     const [x, y] = key.split('_');
                     const sq = document.getElementById(`sq_${x}_${y}`);
                     
-                    // قفل المربع نهائياً واستبداله بصورة ورابط العميل الأصلي ومنع تعديله
+                    // قفل المربع نهائياً واستبداله بصورة ورابط العميل ومنع سرقته أو تعديله بعد الشراء
                     if (sq) {
                         sq.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
                         sq.style.cursor = 'default';
+                        sq.onclick = null; // إزالة إمكانية النقر والفتح لقائمة الشراء
                     }
                 });
             }).catch(err => console.log(err));
         }
 
-        // إطلاق مصفوفة المربعات فوراً
+        // إطلاق مصفوفة المربعات فوراً للزوار
         buildBlankGrid();
         loadPixelsFromFirebase();
 
@@ -229,5 +230,3 @@
 
             try {
                 walletButton.disabled = true;
-                walletButton.innerText = "Processing...";
-                
