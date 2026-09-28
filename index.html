@@ -18,7 +18,7 @@
             margin: 25px auto; 
             overflow: auto; 
             max-width: 100%; 
-            max-height: 80vh; 
+            max-height: 75vh; 
             border: 3px solid #d4af37;
             border-radius: 8px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);
@@ -48,7 +48,7 @@
             position: fixed; 
             top: 0; left: 0; width: 100%; height: 100%; 
             background-color: rgba(0,0,0,0.6); 
-            z-index: 100; 
+            z-index: 1000; 
             justify-content: center; align-items: center;
         }
         .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border-top: 5px solid #d4af37; }
@@ -91,7 +91,7 @@
         // --- ⚙️ الإعدادات المعتمدة والآمنة لموقعك ---
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
-        const PIXEL_SIZE = 30; // حجم المربع الواحد 30 بكسل
+        const PIXEL_SIZE = 30; 
         // -------------------------------------------
 
         const pixelBoard = document.getElementById('pixel-board');
@@ -104,7 +104,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. تحميل البكسلات الحالية فور فتح الصفحة
+        // 1. تحميل البكسلات الحالية عند فتح الصفحة
         window.addEventListener('DOMContentLoaded', loadPixelsFromFirebase);
 
         function loadPixelsFromFirebase() {
@@ -140,30 +140,27 @@
             .catch(error => console.error("Error loading pixels:", error));
         }
 
-        // 2. رصد نقرة الزبون لاختيار مربع فارغ
+        // 2. رصد نقرة الزبون واحتساب موقعه بشكل مستقل وآمن
         pixelBoard.addEventListener('click', (e) => {
             const rect = pixelBoard.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
-            // تقريب الإحداثيات لتتوافق مع المربعات تماماً
             currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
             currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
 
-            // منع الضغط على المربعات المحجوزة مسبقاً
             if (takenPixels[`${currentX}_${currentY}`]) {
                 alert("This square is already taken! Please choose an empty square.");
                 return;
             }
 
-            // فتح نافذة الدفع وإظهار الإحداثيات المحددة
             coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
             paymentModal.style.display = 'flex';
         });
 
         closeButton.addEventListener('click', () => { paymentModal.style.display = 'none'; });
 
-        // 3. تفعيل الدفع الآلي بالبلوكشين عند النقر على التأكيد
+        // 3. التحقق من المحفظة وتفعيل الدفع فقط عند نقر الزر داخل النافذة
         publishButton.addEventListener('click', async () => {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -173,8 +170,9 @@
                 return;
             }
 
+            // فحص المحفظة هنا لحماية الكود من الـ Crash أثناء التصفح العادي
             if (typeof window.ethereum === 'undefined') {
-                alert('No Crypto Wallet detected! Please use Trust Wallet browser or MetaMask plugin to purchase.');
+                alert('No Crypto Wallet detected! To complete the automated payment, please open this link from inside your Trust Wallet App Browser or Metamask Browser.');
                 return;
             }
 
@@ -188,7 +186,7 @@
 
                 const tx = {
                     to: MY_WALLET_ADDRESS,
-                    value: ethers.utils.parseEther("1.0") // خصم 1 POL وإرسالها لمحفظتك
+                    value: ethers.utils.parseEther("1.0") 
                 };
 
                 publishButton.innerText = "Please confirm payment in your wallet...";
@@ -198,7 +196,6 @@
                 
                 const receipt = await transactionResponse.wait();
 
-                // في حال تأكيد البلوكشين للعملية بنسبة 100%، يتم الحفظ التلقائي
                 if (receipt.status === 1) {
                     alert('Payment Confirmed! Publishing your pixel now...');
                     saveToFirebase(currentX, currentY, pixelLink, pixelImage);
@@ -214,7 +211,6 @@
             }
         });
 
-        // 4. دالة الحفظ التلقائي في قاعدة البيانات
         function saveToFirebase(x, y, link, image) {
             const pixelData = { link: link, image: image, timestamp: Date.now() };
 
@@ -223,3 +219,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(pixelData)
             })
+            .then(response => {
+                if (!response.ok) throw new Error('Firebase Error');
+                return response.json();
+            })
+            .then(data => {
