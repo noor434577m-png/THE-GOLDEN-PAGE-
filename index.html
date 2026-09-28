@@ -6,7 +6,7 @@
     <title>The Golden Page</title>
     
     <!-- استدعاء مكتبة Ethers.js الرسمية للبلوكشين -->
-    <script src="https://cloudflare.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; margin: 0; }
@@ -24,6 +24,7 @@
             display: inline-block;
         }
         
+        /* تصميم خريطة الـ 2500 مربع الصافية والمستقرة */
         #pixel-board { 
             display: grid;
             grid-template-columns: repeat(50, 15px); 
@@ -117,6 +118,7 @@
         </div>
     </div>
 
+    <!-- كود الـ JavaScript مدمج بالكامل وبشكل نقي ومستقل 100% -->
     <script>
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
@@ -132,7 +134,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // دالة رسم الشبكة (تعمل فوراً ومحلياً لضمان عدم اختفاء المربعات تحت أي ظرف)
+        // 1. بناء المربعات بشكل فوري مستقل ومحمي ومحلي
         function buildBlankGrid() {
             pixelBoard.innerHTML = ''; 
             for (let row = 0; row < 50; row++) {
@@ -158,7 +160,7 @@
             }
         }
 
-        // جلب البيانات من Firebase وتحديث المربعات المشغولة في الخلفية
+        // 2. تحديث المربعات المشغولة من قاعدة البيانات في الخلفية
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -173,20 +175,18 @@
                         sq.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
                     }
                 });
-            }).catch(err => console.log("Firebase Load Error: ", err));
+            }).catch(err => console.log(err));
         }
 
-        // تشغيل البناء الفوري المستقل
+        // تشغيل البناء
         buildBlankGrid();
         loadPixelsFromFirebase();
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // دالة التوجيه الذكي للروابط العميقة (Deep Links) لمنع حظر متصفحات الآيفون
+        // دالة التوجيه العميقة للجوال لمنع تعطل المتصفح العادي
         function handleMobileRedirect(walletType) {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            
-            // التحقق الآمن والمقاوم للـ Crash
             const hasWallet = (typeof window.ethereum !== 'undefined');
             
             if (isMobile && !hasWallet) {
@@ -201,7 +201,7 @@
             return false; 
         }
 
-        // معالجة الدفع الآمن بعد تخطي الفحوصات بنجاح
+        // معالجة الدفع والتحقق الفولاذي والرفع لـ Firebase
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -214,9 +214,8 @@
             const targetWallet = walletButton.id === 'btn-metamask' ? 'metamask' : 'trust';
             if (handleMobileRedirect(targetWallet)) return; 
 
-            // التحقق النهائي من المحفظة فقط عند تنفيذ كود الـ Web3 الفعلي
             if (typeof window.ethereum === 'undefined') {
-                alert('No crypto wallet extension found. If you are on mobile, make sure the app opened properly.');
+                alert('No crypto wallet extension found. If you are on mobile, please make sure the wallet app opened correctly.');
                 return;
             }
 
@@ -232,5 +231,5 @@
                 const res = await signer.sendTransaction(tx);
                 const receipt = await res.wait();
 
+                // التحقق الفولاذي: لا نشر في Firebase إلا بعد تأكيد شبكة البلوكشين لوصول الأموال
                 if (receipt.status === 1) {
-                    fetch(`${FIREBASE_URL}/pixels/${currentX}_${currentY}.json`, {
