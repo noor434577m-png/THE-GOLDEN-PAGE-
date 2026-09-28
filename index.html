@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page</title>
     
-    <!-- استدعاء مكتبة Ethers.js لربط المحافظ بالبلوكشين -->
+    <!-- استدعاء مكتبة Ethers.js الرسمية للبلوكشين -->
     <script src="https://cloudflare.com"></script>
     
     <style>
@@ -13,6 +13,7 @@
         .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); border: 1px solid #d4af37; }
         h1 { color: #d4af37; margin-bottom: 5px; }
         
+        /* حاوية مرنة تمنع حظر المتصفحات وتدعم اللمس على الجوال */
         .board-container { 
             margin: 25px auto; 
             overflow: auto; 
@@ -21,19 +22,20 @@
             border-radius: 8px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);
             display: inline-block;
+            background-color: #fff;
         }
         
-        /* تحويل اللوحة إلى نظام شبكي حقيقي ومادي */
+        /* شبكة مادية صلبة من 2500 مربع (50 عمود × 50 صف) */
         #pixel-board { 
             display: grid;
-            grid-template-columns: repeat(50, 15px); /* 50 عمود */
-            grid-template-rows: repeat(50, 15px);    /* 50 صف */
+            grid-template-columns: repeat(50, 15px); 
+            grid-template-rows: repeat(50, 15px);    
             width: 750px; 
             height: 750px; 
             background-color: #fff; 
         }
         
-        /* تصميم المربع الفارغ القابل للنقر */
+        /* تصميم المربع الفارغ القابل للنقر الفوري */
         .grid-square {
             width: 15px;
             height: 15px;
@@ -43,10 +45,10 @@
             background-color: #fff;
         }
         .grid-square:hover {
-            background-color: #ffeaa7; /* تلميح باللون الأصفر عند تمرير الماوس فوق المربع */
+            background-color: #ffeaa7; 
         }
         
-        /* المربعات المباعة والمشغولة بالصور */
+        /* البكسلات المباعة المشغولة بالصور والروابط */
         .grid-square img { 
             width: 100%; 
             height: 100%; 
@@ -55,7 +57,7 @@
             cursor: pointer;
         }
 
-        /* النافذة المنبثقة لطلب الدفع والنشر */
+        /* النافذة المنبثقة لطلب البيانات والدفع */
         .modal {
             display: none; 
             position: fixed; 
@@ -81,7 +83,7 @@
         <p><strong>Price: 1 POL ($1) per square</strong> | Grid size: 2500 Squares available</p>
     </div>
 
-    <!-- لوحة عرض الشبكة التفاعلية -->
+    <!-- حاوية عرض الشبكة -->
     <div class="board-container">
         <div id="pixel-board"></div>
     </div>
@@ -118,39 +120,56 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        window.addEventListener('DOMContentLoaded', loadPixelsFromFirebase);
+        // تنفيذ فوري ومستقل لبناء المربعات فور فتح الصفحة لمنع الاختفاء
+        window.addEventListener('DOMContentLoaded', () => {
+            buildBlankGrid(); 
+            loadPixelsFromFirebase(); 
+        });
 
-        // 1. جلب البيانات ثم بناء الـ 2500 مربع مادياً في المتصفح
-        function loadPixelsFromFirebase() {
-            fetch(`${FIREBASE_URL}/pixels.json`)
-            .then(response => response.json())
-            .then(data => {
-                takenPixels = data || {}; 
-                buildInteractiveGrid();
-            })
-            .catch(error => {
-                console.error("Error loading pixels:", error);
-                buildInteractiveGrid(); // بناء الشبكة حتى في حال كانت الداتابيز فارغة لأول مرة
-            });
-        }
-
-        // دالة التوليد الديناميكي للمربعات المادية الحقيقية
-        function buildInteractiveGrid() {
-            pixelBoard.innerHTML = ''; // تصفير اللوحة
-
+        // 1. دالة رسم الشبكة الفارغة فوراً (تضمن ظهور المربعات وقابليتها للضغط بشكل فوري ودون حظر)
+        function buildBlankGrid() {
+            pixelBoard.innerHTML = ''; 
             for (let row = 0; row < GRID_ROWS; row++) {
                 for (let col = 0; col < GRID_COLS; col++) {
                     const xCoord = col * 15;
                     const yCoord = row * 15;
-                    const pixelKey = `${xCoord}_${yCoord}`;
+                    const pixelId = `square_${xCoord}_${yCoord}`;
 
-                    // إنشاء عنصر المربع المستقل
                     const square = document.createElement('div');
                     square.className = 'grid-square';
+                    square.id = pixelId;
 
-                    // فحص إذا كان المربع مباعاً مسبقاً
-                    if (takenPixels[pixelKey]) {
-                        const pixelData = takenPixels[pixelKey];
+                    // تفعيل حدث النقر الفوري المباشر والمستقل للمربع
+                    square.onclick = function() {
+                        if (takenPixels[`${xCoord}_${yCoord}`]) return; 
+                        currentX = xCoord;
+                        currentY = yCoord;
+                        coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
+                        paymentModal.style.display = 'flex';
+                    };
+
+                    pixelBoard.appendChild(square);
+                }
+            }
+        }
+
+        // 2. جلب البيانات من Firebase وتحديث المربعات المحجوزة في الخلفية دون تعطيل الصفحة
+        function loadPixelsFromFirebase() {
+            fetch(`${FIREBASE_URL}/pixels.json`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data) return;
+                takenPixels = data; 
+
+                Object.keys(data).forEach(key => {
+                    const pixelData = data[key];
+                    const [x, y] = key.split('_');
+                    const targetSquare = document.getElementById(`square_${x}_${y}`);
+
+                    if (targetSquare) {
+                        targetSquare.innerHTML = ''; 
+                        targetSquare.style.cursor = 'default';
+
                         const anchor = document.createElement('a');
                         anchor.href = pixelData.link;
                         anchor.target = '_blank';
@@ -160,25 +179,16 @@
                         img.onerror = () => { img.src = 'https://placeholder.com'; };
 
                         anchor.appendChild(img);
-                        square.appendChild(anchor);
-                    } else {
-                        // إضافة حدث النقر الصريح والمباشر للمربع الفارغ بدون حسابات معقدة
-                        square.addEventListener('click', () => {
-                            currentX = xCoord;
-                            currentY = yCoord;
-                            coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
-                            paymentModal.style.display = 'flex';
-                        });
+                        targetSquare.appendChild(anchor);
                     }
-
-                    pixelBoard.appendChild(square);
-                }
-            }
+                });
+            })
+            .catch(error => console.error("Error updating grid from Firebase:", error));
         }
 
         closeButton.onclick = function() { paymentModal.style.display = 'none'; };
 
-        // 2. التحقق من المحفظة وتفعيل الدفع
+        // 3. دالة الدفع الآمن بالبلوكشين (تستدعى فقط عند ضغط زر الشراء النهائي)
         publishButton.onclick = async function() {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -188,6 +198,7 @@
                 return;
             }
 
+            // فحص وجود المحفظة لحماية الصفحة من الانهيار عند الزوار العاديين
             if (typeof window.ethereum === 'undefined') {
                 alert('No Crypto Wallet detected! Please open this website inside your Trust Wallet App Browser or Metamask Browser to complete the payment.');
                 return;
@@ -213,19 +224,8 @@
                 
                 const receipt = await transactionResponse.wait();
 
+                // شرط حماية أمان المتجر الأساسي: status === 1 يعني نجاح وصول الأموال لمحفظتك رسمياً
                 if (receipt.status === 1) {
                     alert('Payment Confirmed! Publishing your pixel now...');
                     saveToFirebase(currentX, currentY, pixelLink, pixelImage);
                 } else {
-                    throw new Error("Blockchain transaction failed");
-                }
-
-            } catch (error) {
-                console.error("Payment error:", error);
-                alert("Payment cancelled or network error occurred. Please try again.");
-                publishButton.disabled = false;
-                publishButton.innerText = "Pay 1 POL & Publish";
-            }
-        };
-
-        function saveToFirebase(x, y, link, image) {
