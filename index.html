@@ -52,7 +52,6 @@
             display: block;
         }
 
-        /* تصميم النافذة المنبثقة المحدثة */
         .modal {
             display: none; 
             position: fixed; 
@@ -63,7 +62,6 @@
         }
         .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 440px; text-align: center; border-top: 5px solid #d4af37; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         
-        /* دليل المستخدم المدمج للآيفون والجوال */
         .guide-text { 
             background-color: #fff9e6; 
             border: 1px solid #ffeaa7; 
@@ -73,14 +71,15 @@
             text-align: right; 
             margin-bottom: 15px; 
             line-height: 1.5;
+            color: #555;
         }
         
         input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 14px; }
         
         .wallet-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
         .btn-pay { color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; width: 95%; font-weight: bold; margin: auto; }
-        .btn-mm { background-color: #f6851b; } /* لون ميتاماسك */
-        .btn-tw { background-color: #3375bb; } /* لون تراست والت */
+        .btn-mm { background-color: #f6851b; } 
+        .btn-tw { background-color: #3375bb; } 
         .btn-close { background-color: #f44336; margin-top: 5px; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
     </style>
@@ -96,13 +95,11 @@
         <div id="pixel-board"></div>
     </div>
 
-    <!-- النافذة المنبثقة الذكية المدعمة بالتعليمات والروابط العميقة -->
     <div id="payment-modal" class="modal">
         <div class="modal-content">
             <h3>Configure & Purchase Pixel</h3>
             <p>Selected Position: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
             
-            <!-- النص الإرشادي الذكي بالعربية والإنجليزية لتوجيه مستخدمي متصفحات سفاري وكروم العادية -->
             <div class="guide-text">
                 <strong>💡 إرشادات الدفع للجوال / Mobile Guide:</strong><br>
                 • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك المفضلة بالأسفل وسيتم تحويلك تلقائياً لفتح الموقع وتأكيد الحوالة من داخل التطبيق المحمي.<br>
@@ -135,7 +132,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. رسم المربعات بشكل فوري محلي ومستقر
+        // دالة رسم الشبكة (تعمل فوراً ومحلياً لضمان عدم اختفاء المربعات تحت أي ظرف)
         function buildBlankGrid() {
             pixelBoard.innerHTML = ''; 
             for (let row = 0; row < 50; row++) {
@@ -161,7 +158,7 @@
             }
         }
 
-        // 2. جلب وتحديث المربعات المشغولة من الفايربيس في الخلفية
+        // جلب البيانات من Firebase وتحديث المربعات المشغولة في الخلفية
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -176,35 +173,35 @@
                         sq.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
                     }
                 });
-            }).catch(err => console.log(err));
+            }).catch(err => console.log("Firebase Load Error: ", err));
         }
 
+        // تشغيل البناء الفوري المستقل
         buildBlankGrid();
         loadPixelsFromFirebase();
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // دالة الفحص الذكي وتوجيه الروابط العميقة للآيفون والجوال
+        // دالة التوجيه الذكي للروابط العميقة (Deep Links) لمنع حظر متصفحات الآيفون
         function handleMobileRedirect(walletType) {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             
-            // إذا كان المتصفح عادي على الجوال ولا يملك كود المحفظة مدمجاً
-            if (isMobile && typeof window.ethereum === 'undefined') {
+            // التحقق الآمن والمقاوم للـ Crash
+            const hasWallet = (typeof window.ethereum !== 'undefined');
+            
+            if (isMobile && !hasWallet) {
                 const currentUrl = window.location.href;
-                
                 if (walletType === 'metamask') {
-                    // الرابط العميق لميتاماسك
                     window.location.href = `https://app.link{currentUrl.replace('https://', '')}`;
                 } else if (walletType === 'trust') {
-                    // الرابط العميق المعتمد لتراست والت لفتح متصفح الـ DApp تلقائياً
-                    window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(currentUrl)}`;
+                    window.location.href = `https://trustwallet.com{encodeURIComponent(currentUrl)}`;
                 }
-                return true; // تم التوجيه بنجاح
+                return true; 
             }
-            return false; // يكمل الدفع العادي لو كان على الكمبيوتر أو داخل محفظة بالفعل
+            return false; 
         }
 
-        // دالة الدفع الموحدة والآمنة
+        // معالجة الدفع الآمن بعد تخطي الفحوصات بنجاح
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -214,11 +211,15 @@
                 return;
             }
 
-            // تنفيذ فحص التوجيه العالي للآيفون والجوال
             const targetWallet = walletButton.id === 'btn-metamask' ? 'metamask' : 'trust';
             if (handleMobileRedirect(targetWallet)) return; 
 
-            // إذا كان داخل محفظة أو على الكمبيوتر، ينفذ الـ Web3 الفوري الآمن
+            // التحقق النهائي من المحفظة فقط عند تنفيذ كود الـ Web3 الفعلي
+            if (typeof window.ethereum === 'undefined') {
+                alert('No crypto wallet extension found. If you are on mobile, make sure the app opened properly.');
+                return;
+            }
+
             try {
                 walletButton.disabled = true;
                 walletButton.innerText = "Processing...";
@@ -228,3 +229,8 @@
                 const signer = provider.getSigner();
 
                 const tx = { to: MY_WALLET_ADDRESS, value: ethers.utils.parseEther("1.0") };
+                const res = await signer.sendTransaction(tx);
+                const receipt = await res.wait();
+
+                if (receipt.status === 1) {
+                    fetch(`${FIREBASE_URL}/pixels/${currentX}_${currentY}.json`, {
