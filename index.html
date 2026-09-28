@@ -13,7 +13,6 @@
         .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); border: 1px solid #d4af37; }
         h1 { color: #d4af37; margin-bottom: 5px; }
         
-        /* حاوية الخريطة الشبكية المحدثة سريعة التجاوب */
         .board-container { 
             margin: 25px auto; 
             overflow: auto; 
@@ -24,25 +23,39 @@
             display: inline-block;
         }
         
-        /* لوحة الـ 2500 مربع بحجم مصلح ومقاوم للأخطاء */
+        /* تحويل اللوحة إلى نظام شبكي حقيقي ومادي */
         #pixel-board { 
-            position: relative; 
+            display: grid;
+            grid-template-columns: repeat(50, 15px); /* 50 عمود */
+            grid-template-rows: repeat(50, 15px);    /* 50 صف */
             width: 750px; 
             height: 750px; 
             background-color: #fff; 
-            background-image: linear-gradient(to right, #f5f5f5 1px, transparent 1px), linear-gradient(to bottom, #f5f5f5 1px, transparent 1px);
-            background-size: 15px 15px; /* تقسيم الشبكة لمربعات 15 بكسل */
-            cursor: crosshair;
         }
-        .user-pixel { 
-            position: absolute; 
-            width: 15px; 
-            height: 15px; 
+        
+        /* تصميم المربع الفارغ القابل للنقر */
+        .grid-square {
+            width: 15px;
+            height: 15px;
+            border: 1px solid #f0f0f0;
             box-sizing: border-box;
+            cursor: crosshair;
+            background-color: #fff;
         }
-        .user-pixel img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+        .grid-square:hover {
+            background-color: #ffeaa7; /* تلميح باللون الأصفر عند تمرير الماوس فوق المربع */
+        }
+        
+        /* المربعات المباعة والمشغولة بالصور */
+        .grid-square img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            display: block;
+            cursor: pointer;
+        }
 
-        /* النافذة المنبثقة لطلب الدفع */
+        /* النافذة المنبثقة لطلب الدفع والنشر */
         .modal {
             display: none; 
             position: fixed; 
@@ -91,7 +104,8 @@
         // --- ⚙️ الإعدادات المعتمدة والآمنة لموقعك ---
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
-        const PIXEL_SIZE = 15; // تم الحجم لـ 15 بكسل لتفادي مشاكل الشاشات
+        const GRID_ROWS = 50;
+        const GRID_COLS = 50;
         // -------------------------------------------
 
         const pixelBoard = document.getElementById('pixel-board');
@@ -106,60 +120,65 @@
 
         window.addEventListener('DOMContentLoaded', loadPixelsFromFirebase);
 
+        // 1. جلب البيانات ثم بناء الـ 2500 مربع مادياً في المتصفح
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(response => response.json())
             .then(data => {
-                pixelBoard.innerHTML = '';
-                if (!data) return;
-                takenPixels = data; 
-
-                Object.keys(data).forEach(key => {
-                    const pixel = data[key];
-                    const [x, y] = key.split('_');
-
-                    const pixelDiv = document.createElement('div');
-                    pixelDiv.className = 'user-pixel';
-                    pixelDiv.style.left = `${x}px`;
-                    pixelDiv.style.top = `${y}px`;
-
-                    const anchor = document.createElement('a');
-                    anchor.href = pixel.link;
-                    anchor.target = '_blank';
-
-                    const img = document.createElement('img');
-                    img.src = pixel.image;
-                    img.onerror = () => { img.src = 'https://placeholder.com'; };
-
-                    anchor.appendChild(img);
-                    pixelDiv.appendChild(anchor);
-                    pixelBoard.appendChild(pixelDiv);
-                });
+                takenPixels = data || {}; 
+                buildInteractiveGrid();
             })
-            .catch(error => console.error("Error loading pixels:", error));
+            .catch(error => {
+                console.error("Error loading pixels:", error);
+                buildInteractiveGrid(); // بناء الشبكة حتى في حال كانت الداتابيز فارغة لأول مرة
+            });
         }
 
-        // 2. استخدام طريقة offsetX الأحدث والأكثر دقة لإنهاء مشكلة عدم الاستجابة تماماً
-        pixelBoard.addEventListener('click', function(e) {
-            // منع فتح النافذة لو ضغط الزبون على صورة مباعة مسبقاً
-            if (e.target !== pixelBoard) return;
+        // دالة التوليد الديناميكي للمربعات المادية الحقيقية
+        function buildInteractiveGrid() {
+            pixelBoard.innerHTML = ''; // تصفير اللوحة
 
-            // حساب الإحداثيات بالنسبة للوحة مباشرة دون التأثر بالـ Scroll
-            currentX = Math.floor(e.offsetX / PIXEL_SIZE) * PIXEL_SIZE;
-            currentY = Math.floor(e.offsetY / PIXEL_SIZE) * PIXEL_SIZE;
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    const xCoord = col * 15;
+                    const yCoord = row * 15;
+                    const pixelKey = `${xCoord}_${yCoord}`;
 
-            if (takenPixels[`${currentX}_${currentY}`]) {
-                alert("This square is already taken! Please choose an empty square.");
-                return;
+                    // إنشاء عنصر المربع المستقل
+                    const square = document.createElement('div');
+                    square.className = 'grid-square';
+
+                    // فحص إذا كان المربع مباعاً مسبقاً
+                    if (takenPixels[pixelKey]) {
+                        const pixelData = takenPixels[pixelKey];
+                        const anchor = document.createElement('a');
+                        anchor.href = pixelData.link;
+                        anchor.target = '_blank';
+
+                        const img = document.createElement('img');
+                        img.src = pixelData.image;
+                        img.onerror = () => { img.src = 'https://placeholder.com'; };
+
+                        anchor.appendChild(img);
+                        square.appendChild(anchor);
+                    } else {
+                        // إضافة حدث النقر الصريح والمباشر للمربع الفارغ بدون حسابات معقدة
+                        square.addEventListener('click', () => {
+                            currentX = xCoord;
+                            currentY = yCoord;
+                            coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
+                            paymentModal.style.display = 'flex';
+                        });
+                    }
+
+                    pixelBoard.appendChild(square);
+                }
             }
-
-            coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
-            paymentModal.style.display = 'flex';
-        });
+        }
 
         closeButton.onclick = function() { paymentModal.style.display = 'none'; };
 
-        // 3. التحقق من المحفظة وتفعيل الدفع
+        // 2. التحقق من المحفظة وتفعيل الدفع
         publishButton.onclick = async function() {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -210,16 +229,3 @@
         };
 
         function saveToFirebase(x, y, link, image) {
-            const pixelData = { link: link, image: image, timestamp: Date.now() };
-
-            fetch(`${FIREBASE_URL}/pixels/${x}_${y}.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(pixelData)
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Firebase Error');
-                return response.json();
-            })
-            .then(data => {
-                alert('🎉 Congratulations! Your pixel is now live on The Golden Page!');
