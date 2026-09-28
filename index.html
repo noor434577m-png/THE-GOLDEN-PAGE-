@@ -13,46 +13,42 @@
         .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); border: 1px solid #d4af37; }
         h1 { color: #d4af37; margin-bottom: 5px; }
         
-        /* حاوية الخريطة الشبكية الكبيرة مع شريط تمرير لسهولة التصفح */
+        /* حاوية الخريطة الشبكية المحدثة سريعة التجاوب */
         .board-container { 
             margin: 25px auto; 
             overflow: auto; 
             max-width: 95%; 
-            max-height: 70vh; 
             border: 3px solid #d4af37;
             border-radius: 8px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-            position: relative;
+            display: inline-block;
         }
         
-        /* لوحة الـ 2500 مربع (50 مربع عرض × 50 مربع ارتفاع) */
+        /* لوحة الـ 2500 مربع بحجم مصلح ومقاوم للأخطاء */
         #pixel-board { 
-            display: block;
             position: relative; 
-            width: 1500px; 
-            height: 1500px; 
+            width: 750px; 
+            height: 750px; 
             background-color: #fff; 
-            background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px), linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
-            background-size: 30px 30px; 
+            background-image: linear-gradient(to right, #f5f5f5 1px, transparent 1px), linear-gradient(to bottom, #f5f5f5 1px, transparent 1px);
+            background-size: 15px 15px; /* تقسيم الشبكة لمربعات 15 بكسل */
             cursor: crosshair;
-            z-index: 5;
         }
         .user-pixel { 
             position: absolute; 
-            width: 30px; 
-            height: 30px; 
+            width: 15px; 
+            height: 15px; 
             box-sizing: border-box;
-            z-index: 10;
         }
         .user-pixel img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
 
-        /* النافذة المنبثقة لطلب الدفع بعد اختيار المربع */
+        /* النافذة المنبثقة لطلب الدفع */
         .modal {
             display: none; 
             position: fixed; 
             top: 0; left: 0; width: 100%; height: 100%; 
             background-color: rgba(0,0,0,0.6); 
-            z-index: 99999; /* رفع النافذة فوق كل شيء لضمان ظهورها وضغط أزرارها */
+            z-index: 99999; 
             justify-content: center; align-items: center;
         }
         .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border-top: 5px solid #d4af37; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
@@ -84,7 +80,7 @@
             <p>Selected Position: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
             
             <input type="text" id="pixel-link" placeholder="Your Website URL (https://...)">
-            <input type="text" id="pixel-image" placeholder="Direct Image URL (30x30 px recommended)">
+            <input type="text" id="pixel-image" placeholder="Direct Image URL">
             
             <button id="publish-btn" class="btn-pay">Pay 1 POL & Publish</button>
             <button id="close-btn" class="btn-pay btn-close">Cancel</button>
@@ -95,7 +91,7 @@
         // --- ⚙️ الإعدادات المعتمدة والآمنة لموقعك ---
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
-        const PIXEL_SIZE = 30; 
+        const PIXEL_SIZE = 15; // تم الحجم لـ 15 بكسل لتفادي مشاكل الشاشات
         // -------------------------------------------
 
         const pixelBoard = document.getElementById('pixel-board');
@@ -108,7 +104,6 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. تحميل البكسلات الحالية عند فتح الصفحة
         window.addEventListener('DOMContentLoaded', loadPixelsFromFirebase);
 
         function loadPixelsFromFirebase() {
@@ -144,17 +139,14 @@
             .catch(error => console.error("Error loading pixels:", error));
         }
 
-        // 2. رصد نقرة الزبون واحتساب موقعه بشكل صحيح ومقاوم للـ Layer Bugs
-        pixelBoard.onclick = function(e) {
-            const rect = pixelBoard.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+        // 2. استخدام طريقة offsetX الأحدث والأكثر دقة لإنهاء مشكلة عدم الاستجابة تماماً
+        pixelBoard.addEventListener('click', function(e) {
+            // منع فتح النافذة لو ضغط الزبون على صورة مباعة مسبقاً
+            if (e.target !== pixelBoard) return;
 
-            currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
-            currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
-
-            // التحقق من الحدود لمنع النقرات العشوائية خارج الـ 1500px
-            if (currentX < 0 || currentX >= 1500 || currentY < 0 || currentY >= 1500) return;
+            // حساب الإحداثيات بالنسبة للوحة مباشرة دون التأثر بالـ Scroll
+            currentX = Math.floor(e.offsetX / PIXEL_SIZE) * PIXEL_SIZE;
+            currentY = Math.floor(e.offsetY / PIXEL_SIZE) * PIXEL_SIZE;
 
             if (takenPixels[`${currentX}_${currentY}`]) {
                 alert("This square is already taken! Please choose an empty square.");
@@ -163,7 +155,7 @@
 
             coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
             paymentModal.style.display = 'flex';
-        };
+        });
 
         closeButton.onclick = function() { paymentModal.style.display = 'none'; };
 
@@ -226,3 +218,8 @@
                 body: JSON.stringify(pixelData)
             })
             .then(response => {
+                if (!response.ok) throw new Error('Firebase Error');
+                return response.json();
+            })
+            .then(data => {
+                alert('🎉 Congratulations! Your pixel is now live on The Golden Page!');
