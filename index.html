@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page</title>
     
-    <!-- استدعاء مكتبة Ethers.js للبلوكشين -->
+    <!-- استدعاء مكتبة Ethers.js الرسمية للبلوكشين -->
     <script src="https://cloudflare.com"></script>
     
     <style>
@@ -36,7 +36,7 @@
         .grid-square {
             width: 15px;
             height: 15px;
-            border: 1px solid #ccc; /* حدود واضحة لضمان الرؤية */
+            border: 1px solid #ccc; 
             box-sizing: border-box;
             cursor: pointer;
             background-color: #ffffff;
@@ -52,6 +52,7 @@
             display: block;
         }
 
+        /* تصميم النافذة المنبثقة المحدثة */
         .modal {
             display: none; 
             position: fixed; 
@@ -60,10 +61,27 @@
             z-index: 99999; 
             justify-content: center; align-items: center;
         }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border-top: 5px solid #d4af37; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 14px; }
-        .btn-pay { background-color: #d4af37; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; font-weight: bold; }
-        .btn-close { background-color: #f44336; margin-top: 8px; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 440px; text-align: center; border-top: 5px solid #d4af37; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        
+        /* دليل المستخدم المدمج للآيفون والجوال */
+        .guide-text { 
+            background-color: #fff9e6; 
+            border: 1px solid #ffeaa7; 
+            padding: 10px; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            text-align: right; 
+            margin-bottom: 15px; 
+            line-height: 1.5;
+        }
+        
+        input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 14px; }
+        
+        .wallet-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+        .btn-pay { color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; width: 95%; font-weight: bold; margin: auto; }
+        .btn-mm { background-color: #f6851b; } /* لون ميتاماسك */
+        .btn-tw { background-color: #3375bb; } /* لون تراست والت */
+        .btn-close { background-color: #f44336; margin-top: 5px; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
     </style>
 </head>
@@ -78,14 +96,27 @@
         <div id="pixel-board"></div>
     </div>
 
+    <!-- النافذة المنبثقة الذكية المدعمة بالتعليمات والروابط العميقة -->
     <div id="payment-modal" class="modal">
         <div class="modal-content">
-            <h3>Configure Your Pixel</h3>
+            <h3>Configure & Purchase Pixel</h3>
             <p>Selected Position: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
+            
+            <!-- النص الإرشادي الذكي بالعربية والإنجليزية لتوجيه مستخدمي متصفحات سفاري وكروم العادية -->
+            <div class="guide-text">
+                <strong>💡 إرشادات الدفع للجوال / Mobile Guide:</strong><br>
+                • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك المفضلة بالأسفل وسيتم تحويلك تلقائياً لفتح الموقع وتأكيد الحوالة من داخل التطبيق المحمي.<br>
+                • On mobile Safari/Chrome, click your wallet below to safely redirect and purchase directly inside the wallet app.
+            </div>
+
             <input type="text" id="pixel-link" placeholder="Your Website URL (https://...)">
-            <input type="text" id="pixel-image" placeholder="Direct Image URL">
-            <button id="publish-btn" class="btn-pay">Pay 1 POL & Publish</button>
-            <button id="close-btn" class="btn-pay btn-close">Cancel</button>
+            <input type="text" id="pixel-image" placeholder="Direct Image URL (.png/.jpg)">
+            
+            <div class="wallet-options">
+                <button id="btn-metamask" class="btn-pay btn-mm">Pay with MetaMask</button>
+                <button id="btn-trust" class="btn-pay btn-tw">Pay with Trust Wallet</button>
+                <button id="close-btn" class="btn-pay btn-close">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -95,7 +126,8 @@
         
         const pixelBoard = document.getElementById('pixel-board');
         const paymentModal = document.getElementById('payment-modal');
-        const publishButton = document.getElementById('publish-btn');
+        const btnMetaMask = document.getElementById('btn-metamask');
+        const btnTrust = document.getElementById('btn-trust');
         const closeButton = document.getElementById('close-btn');
         const coordsText = document.getElementById('selected-coords');
 
@@ -103,7 +135,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // رسم المربعات فوراً بشكل محلي بحت بغض النظر عن الإنترنت أو الحفظ
+        // 1. رسم المربعات بشكل فوري محلي ومستقر
         function buildBlankGrid() {
             pixelBoard.innerHTML = ''; 
             for (let row = 0; row < 50; row++) {
@@ -129,7 +161,7 @@
             }
         }
 
-        // جلب البيانات من الفايربيس في الخلفية
+        // 2. جلب وتحديث المربعات المشغولة من الفايربيس في الخلفية
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -147,13 +179,33 @@
             }).catch(err => console.log(err));
         }
 
-        // تشغيل مباشر
         buildBlankGrid();
         loadPixelsFromFirebase();
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        publishButton.onclick = async function() {
+        // دالة الفحص الذكي وتوجيه الروابط العميقة للآيفون والجوال
+        function handleMobileRedirect(walletType) {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            // إذا كان المتصفح عادي على الجوال ولا يملك كود المحفظة مدمجاً
+            if (isMobile && typeof window.ethereum === 'undefined') {
+                const currentUrl = window.location.href;
+                
+                if (walletType === 'metamask') {
+                    // الرابط العميق لميتاماسك
+                    window.location.href = `https://app.link{currentUrl.replace('https://', '')}`;
+                } else if (walletType === 'trust') {
+                    // الرابط العميق المعتمد لتراست والت لفتح متصفح الـ DApp تلقائياً
+                    window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(currentUrl)}`;
+                }
+                return true; // تم التوجيه بنجاح
+            }
+            return false; // يكمل الدفع العادي لو كان على الكمبيوتر أو داخل محفظة بالفعل
+        }
+
+        // دالة الدفع الموحدة والآمنة
+        async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
 
@@ -162,43 +214,17 @@
                 return;
             }
 
-            if (typeof window.ethereum === 'undefined') {
-                alert('Please open inside MetaMask or Trust Wallet browser.');
-                return;
-            }
+            // تنفيذ فحص التوجيه العالي للآيفون والجوال
+            const targetWallet = walletButton.id === 'btn-metamask' ? 'metamask' : 'trust';
+            if (handleMobileRedirect(targetWallet)) return; 
 
+            // إذا كان داخل محفظة أو على الكمبيوتر، ينفذ الـ Web3 الفوري الآمن
             try {
-                publishButton.disabled = true;
-                publishButton.innerText = "Connecting...";
+                walletButton.disabled = true;
+                walletButton.innerText = "Processing...";
+                
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
 
                 const tx = { to: MY_WALLET_ADDRESS, value: ethers.utils.parseEther("1.0") };
-                publishButton.innerText = "Confirm in wallet...";
-                const res = await signer.sendTransaction(tx);
-                publishButton.innerText = "Waiting confirmation...";
-                const receipt = await res.wait();
-
-                if (receipt.status === 1) {
-                    fetch(`${FIREBASE_URL}/pixels/${currentX}_${currentY}.json`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ link: pixelLink, image: pixelImage, timestamp: Date.now() })
-                    }).then(() => {
-                        alert('Published successfully!');
-                        paymentModal.style.display = 'none';
-                        loadPixelsFromFirebase();
-                        publishButton.disabled = false;
-                        publishButton.innerText = "Pay 1 POL & Publish";
-                    });
-                }
-            } catch (e) {
-                alert('Payment failed or cancelled.');
-                publishButton.disabled = false;
-                publishButton.innerText = "Pay 1 POL & Publish";
-            }
-        };
-    </script>
-</body>
-</html>
