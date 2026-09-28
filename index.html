@@ -1,241 +1,131 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Golden Page - Pixel Advertising Board</title>
+    <title>متجر بسكسلات البيكسل</title>
+    
+    <!-- 1. استدعاء مكتبة Ethers.js الرسمية لربط المحافظ بالبلوكشين -->
+    <script src="https://cloudflare.com"></script>
+    
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            text-align: center; 
-            background: #fbfbfd; 
-            margin: 0; 
-            padding: 20px; 
-            color: #333;
-        }
-        h1 { 
-            color: #d4af37; 
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-            margin-bottom: 5px;
-        }
-        .subtitle { 
-            color: #666; 
-            font-size: 15px; 
-            margin-top: 0;
-            margin-bottom: 25px;
-        }
-        #grid-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            margin: 20px auto;
-            padding: 10px 0;
-        }
-        #grid-container { 
-            display: grid; 
-            grid-template-columns: repeat(50, 16px); 
-            grid-template-rows: repeat(50, 16px); 
-            gap: 1px; 
-            justify-content: center; 
-            width: 850px; 
-            margin: 0 auto;
-            background: #fff;
-            padding: 8px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-        .pixel { 
-            width: 16px; 
-            height: 16px; 
-            background-color: #f7f4eb; 
-            border: 1px solid #e5dfcf; 
-            cursor: pointer; 
-            box-sizing: border-box;
-            background-size: cover; 
-            background-position: center;
-        }
-        .pixel:hover { 
-            background-color: #d4af37; 
-        }
-        #purchase-modal { 
-            display: none; 
-            position: fixed; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-            background: white; 
-            padding: 25px; 
-            box-shadow: 0px 10px 30px rgba(0,0,0,0.15); 
-            border-radius: 12px; 
-            z-index: 100; 
-            width: 85%; 
-            max-width: 320px; 
-        }
-        #purchase-modal h3 { margin-top: 0; color: #333; }
-        .crypto-box {
-            background: #f8f9fa;
-            border: 1px dashed #d4af37;
-            padding: 10px;
-            border-radius: 6px;
-            margin: 10px 0;
-            font-size: 12px;
-            word-break: break-all;
-        }
-        input { 
-            width: 92%; 
-            padding: 10px; 
-            margin: 8px 0; 
-            border: 1px solid #ccc; 
-            border-radius: 6px; 
-            font-size: 14px;
-        }
-        .btn-pay { 
-            background: #28a745; 
-            color: white; 
-            border: none; 
-            padding: 12px 15px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            width: 100%; 
-            font-size: 16px; 
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        .btn-pay:hover { background: #218838; }
-        .close-btn { 
-            background: #dc3545; 
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            width: 100%;
-            margin-top: 8px;
-            cursor: pointer;
-        }
-        .close-btn:hover { background: #c82333; }
-        #modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4);
-            z-index: 90;
-        }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <h1>✨ The Golden Page ✨</h1>
-    <p class="subtitle">Own a permanent advertising pixel space for just \$1 per pixel!</p>
-
-    <div id="grid-wrapper">
-        <div id="grid-container"></div>
-    </div>
-
-    <div id="modal-overlay" onclick="closeModal()"></div>
-    <div id="purchase-modal">
-        <h3>Book Your Pixel</h3>
-        <p style="font-size: 13px; color: #555; margin-bottom: 5px;">Selected Block: <span id="pixel-number-display" style="font-weight:bold; color:#d4af37;">0</span></p>
+    <div class="container">
+        <h2>شراء ونشر بكسل بـ 1\$ فقط</h2>
+        <p>سيتم الدفع بربط محفظتك مباشرة (شبكة Polygon - عملة POL)</p>
         
-        <div class="crypto-box">
-            <strong>Send 1 USDT (TRC20) to:</strong><br>
-            <span id="wallet-address" style="color: #28a745; font-weight: bold;">TNKe6iYtfTXmGqSQMp9vZVrcdfGFzHkPLQ</span>
-        </div>
-
-        <input type="url" id="logo-url" placeholder="Your Logo Image URL (e.g., https://site.com)">
-        <input type="url" id="site-url" placeholder="Your Website Destination URL">
+        <!-- حقول الإدخال للزبون -->
+        <input type="text" id="pixel-link" placeholder="رابط موقعك (https://...)">
+        <input type="text" id="pixel-image" placeholder="رابط صورة البكسل">
+        <input type="number" id="pixel-x" placeholder="الإحداثي X">
+        <input type="number" id="pixel-y" placeholder="الإحداثي Y">
         
-        <button class="btn-pay" id="pay-btn">I Have Paid & Publish</button>
-        <button class="close-btn" onclick="closeModal()">Cancel</button>
+        <!-- زر الدفع والنشر التلقائي الآمن -->
+        <button id="publish-btn">اتصل بالمحفظة وانشر البكسل</button>
     </div>
 
     <script>
-        var dbUrl = "https://firebaseio.com";
-        var grid = document.getElementById('grid-container');
-        var modal = document.getElementById('purchase-modal');
-        var overlay = document.getElementById('modal-overlay');
-        var pixelDisplay = document.getElementById('pixel-number-display');
-        var selectedPixelId = null;
-        var totalPixels = 2500;
+        // --- ⚙️ الإعدادات الرسمية والمؤكدة لموقعك ---
+        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; // محفظتك المربوطة
+        const FIREBASE_URL = "https://the-golden-page-default-rtdb.firebaseio.com"; // رابط قاعدة بياناتك الصحيح
+        // -------------------------------------------
 
-        // 1. رسم الشبكة فوراً وبشكل حتمي ومستقل لمنع بياض الصفحة نهائياً
-        for (var i = 1; i <= totalPixels; i++) {
-            var pixel = document.createElement('div');
-            pixel.className = 'pixel';
-            pixel.id = 'pixel-' + i;
-            pixel.title = 'Block #' + i + ' - Available for $1';
-            setOpenModalAction(pixel, i);
-            grid.appendChild(pixel);
-        }
+        const publishButton = document.getElementById('publish-btn');
 
-        // 2. جلب البيانات السحابية عبر بروتوكول الويب الصافي لتفادي حظر المتصفحات
-        function loadLivePixels() {
-            fetch(dbUrl)
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    if (!data) return;
-                    for (var i = 1; i <= totalPixels; i++) {
-                        if (data[i]) {
-                            var pixelDiv = document.getElementById('pixel-' + i);
-                            if (pixelDiv) {
-                                pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
-                                pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
-                                pixelDiv.style.backgroundColor = '#fff';
-                                setClickAction(pixelDiv, data[i].link);
-                            }
-                        }
-                    }
-                })
-                .catch(function(error) { console.log("Fetch Error:", error); });
-        }
+        publishButton.addEventListener('click', async () => {
+            const pixelLink = document.getElementById('pixel-link').value;
+            const pixelImage = document.getElementById('pixel-image').value;
+            const pixelX = document.getElementById('pixel-x').value;
+            const pixelY = document.getElementById('pixel-y').value;
 
-        function setClickAction(element, link) {
-            element.onclick = function() { window.open(link, '_blank'); };
-        }
+            // 1. التأكد من إدخال البيانات كاملة
+            if (!pixelLink || !pixelImage || !pixelX || !pixelY) {
+                alert('الرجاء تعبئة جميع الحقول أولاً!');
+                return;
+            }
 
-        function setOpenModalAction(element, index) {
-            element.onclick = function() {
-                selectedPixelId = index;
-                pixelDisplay.innerText = index;
-                modal.style.display = 'block';
-                overlay.style.display = 'block';
-            };
-        }
+            // 2. التأكد من وجود محفظة (Web3) في المتصفح
+            if (typeof window.ethereum === 'undefined') {
+                alert('لم نجد محفظة مثبتة! يرجى فتح الموقع من داخل متصفح محفظة Trust Wallet أو تثبيت Metamask لإتمام الدفع الآلي.');
+                return;
+            }
 
-        window.closeModal = function() {
-            modal.style.display = 'none';
-            overlay.style.display = 'none';
-        };
+            try {
+                publishButton.disabled = true;
+                publishButton.innerText = "جاري الاتصال بمحفظتك...";
 
-        // 3. رفع وحفظ البيانات سحابياً بشكل مباشر وآمن للجميع
-        document.getElementById('pay-btn').addEventListener('click', function() {
-            var logo = document.getElementById('logo-url').value.trim();
-            var link = document.getElementById('site-url').value.trim();
+                // طلب الإذن للاتصال بمحفظة الزبون
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
 
-            if (logo && link) {
-                var updateUrl = "https://firebaseio.com" + selectedPixelId + ".json";
-                var payload = JSON.stringify({ logo: logo, link: link });
+                // إعداد الحوالة بقيمة 1 دولار من عملة الشبكة الأساسية (POL)
+                const tx = {
+                    to: MY_WALLET_ADDRESS,
+                    value: ethers.utils.parseEther("1.0") 
+                };
 
-                fetch(updateUrl, { method: "PUT", body: payload })
-                    .then(function(response) {
-                        if (response.ok) {
-                            alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
-                            closeModal();
-                            document.getElementById('logo-url').value = '';
-                            document.getElementById('site-url').value = '';
-                            loadLivePixels();
-                        } else {
-                            alert("Server error, please check Firebase Rules setup.");
-                        }
-                    })
-                    .catch(function(error) {
-                        alert("Save Error: " + error.message);
-                    });
-            } else {
-                alert("Please fill in both the Image URL and Website URL fields.");
+                publishButton.innerText = "برجاء تأكيد الدفع من تطبيق المحفظة...";
+
+                // دفع الزبون للـ 1 دولار من محفظته
+                const transactionResponse = await signer.sendTransaction(tx);
+                publishButton.innerText = "جاري تأكيد المعاملة على البلوكشين (انتظر ثوانٍ)...";
+                
+                // الانتظار الفعلي حتى تنجح العملية على شبكة البلوكشين بالكامل
+                const receipt = await transactionResponse.wait();
+
+                // إذا كانت حالة التحويل ناجحة 100%، يتم النشر للزبون
+                if (receipt.status === 1) {
+                    alert('تم تأكيد وصول الـ 1\$ إلى محفظتك بنجاح! جاري النشر الآن...');
+                    saveToFirebase(pixelX, pixelY, pixelLink, pixelImage);
+                } else {
+                    throw new Error("فشلت المعاملة على الشبكة");
+                }
+
+            } catch (error) {
+                console.error("خطأ أثناء الدفع:", error);
+                alert("تم إلغاء عملية الدفع أو حدث خطأ في الشبكة، يرجى المحاولة مجدداً.");
+                publishButton.disabled = false;
+                publishButton.innerText = "اتصل بالمحفظة وانشر البكسل";
             }
         });
 
-        // تشغيل الجلب التلقائي الفوري للبيانات
-        loadLivePixels();
+        // دالة الرفع الآمن والتلقائي إلى Firebase
+        function saveToFirebase(x, y, link, image) {
+            const pixelData = {
+                link: link,
+                image: image,
+                timestamp: Date.now()
+            };
+
+            fetch(`${FIREBASE_URL}/pixels/${x}_${y}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pixelData)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('فشل الحفظ في قاعدة البيانات');
+                return response.json();
+            })
+            .then(data => {
+                alert('🎉 تم نشر البكسل والإعلان الخاص بك بنجاح آلي بالكامل!');
+                location.reload(); // تحديث الصفحة لرؤية الإعلان الجديد
+            })
+            .catch(error => {
+                console.error("Firebase Error:", error);
+                alert("تم الدفع بنجاح والأموال في محفظتك، لكن حدثت مشكلة أثناء العرض على الموقع. يرجى مراسلة الإدارة لتنشيطه يدوياً.");
+                publishButton.disabled = false;
+                publishButton.innerText = "اتصل بالمحفظة وانشر البكسل";
+            });
+        }
     </script>
 </body>
 </html>
