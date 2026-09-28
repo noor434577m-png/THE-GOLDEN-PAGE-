@@ -5,133 +5,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>متجر بسكسلات البيكسل</title>
     
-    <!-- 1. استدعاء مكتبة Ethers.js لربط المحافظ بالبلوكشين -->
+    <!-- استدعاء مكتبة Ethers.js لربط المحافظ بالبلوكشين -->
     <script src="https://cloudflare.com"></script>
     
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
-        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; font-weight: bold; }
-        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        .info-box { max-width: 600px; margin: auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         
-        /* تصميم لوحة عرض البكسلات المشتروات */
-        .board-title { margin-top: 20px; font-weight: bold; }
+        /* خريطة البكسلات التفاعلية */
+        .board-container { margin: 20px auto; overflow: auto; max-width: 100%; }
         #pixel-board { 
             position: relative; 
-            width: 500px; 
-            height: 500px; 
-            margin: 20px auto; 
+            width: 600px; 
+            height: 600px; 
+            margin: 10px auto; 
             background-color: #fff; 
-            border: 2px dashed #aaa; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            overflow: hidden;
+            background-image: linear-gradient(to right, #eee 1px, transparent 1px), linear-gradient(to bottom, #eee 1px, transparent 1px);
+            background-size: 30px 30px; /* تقسيم الشبكة لمربعات حجمها 30 بكسل */
+            border: 2px solid #333; 
+            cursor: crosshair;
         }
         .user-pixel { 
             position: absolute; 
             width: 30px; 
             height: 30px; 
-            border: 1px solid #eee;
-            transition: transform 0.2s;
+            box-sizing: border-box;
         }
-        .user-pixel:hover { transform: scale(1.2); z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         .user-pixel img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+
+        /* نافذة إدخال البيانات والدفع (تظهر فقط بعد اختيار بكسل) */
+        .modal {
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.5); 
+            z-index: 100; 
+            justify-content: center; align-items: center;
+        }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        .btn-pay { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; font-weight: bold; }
+        .btn-close { background-color: #f44336; margin-top: 5px; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>شراء ونشر بكسل بـ 1\$ فقط</h2>
-        <p>سيتم الدفع بربط محفظتك مباشرة (شبكة Polygon - عملة POL)</p>
-        
-        <!-- حقول الإدخال للزبون -->
-        <input type="text" id="pixel-link" placeholder="رابط موقعك (https://...)">
-        <input type="text" id="pixel-image" placeholder="رابط صورة البكسل (رابط مباشر للـ Image)">
-        <input type="number" id="pixel-x" placeholder="الإحداثي X (من 0 إلى 470)">
-        <input type="number" id="pixel-y" placeholder="الإحداثي Y (من 0 إلى 470)">
-        
-        <!-- زر الدفع والنشر التلقائي الآمن -->
-        <button id="publish-btn">اتصل بالمحفظة وانشر البكسل</button>
+    <div class="info-box">
+        <h2>🗺️ خريطة بكسلات البيكسل (1\$ للمربع)</h2>
+        <p>💡 **طريقة الشراء:** اضغط على أي مكان فارغ (مربع) داخل الشبكة أدناه لتحديده وافتتاح قائمة الدفع والنشر!</p>
     </div>
 
-    <h3 class="board-title">🗺️ خريطة إعلانات البكسل الحالية:</h3>
-    <!-- اللوحة التي ستظهر عليها بكسلات الزبائن تلقائياً -->
-    <div id="pixel-board"></div>
+    <!-- لوحة عرض الشبكة التفاعلية -->
+    <div class="board-container">
+        <div id="pixel-board"></div>
+    </div>
+
+    <!-- النافذة المنبثقة (تظهر بعد اختيار المربع لطلب الدفع) -->
+    <div id="payment-modal" class="modal">
+        <div class="modal-content">
+            <h3>اضبط بيانات البكسل المختار</h3>
+            <p>الموقع المحدد: <strong id="selected-coords">X: 0, Y: 0</strong></p>
+            
+            <input type="text" id="pixel-link" placeholder="رابط موقعك (https://...)">
+            <input type="text" id="pixel-image" placeholder="رابط صورة الإعلان المباشر">
+            
+            <button id="publish-btn" class="btn-pay">تأكيد الدفع (1\$ POL) والنشر</button>
+            <button id="close-btn" class="btn-pay btn-close">إلغاء</button>
+        </div>
+    </div>
 
     <script>
-        // --- ⚙️ الإعدادات الرسمية والمؤكدة لموقعك ---
+        // --- ⚙️ الإعدادات المعتمدة والآمنة لموقعك ---
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
+        const PIXEL_SIZE = 30; // حجم البكسل الواحد ثابت على الشبكة
         // -------------------------------------------
 
-        const publishButton = document.getElementById('publish-btn');
         const pixelBoard = document.getElementById('pixel-board');
+        const paymentModal = document.getElementById('payment-modal');
+        const publishButton = document.getElementById('publish-btn');
+        const closeButton = document.getElementById('close-btn');
+        const coordsText = document.getElementById('selected-coords');
 
-        // استدعاء دالة جلب وعرض البكسلات فور تحميل الصفحة للزوار
-        window.addEventListener('DOMContentLoaded', () => {
-            loadPixelsFromFirebase();
-        });
+        let currentX = 0;
+        let currentY = 0;
+        let takenPixels = {}; // لتخزين الأماكن المحجوزة ومنع الضغط عليها
 
-        // دالة قراءة وجلب البكسلات من Firebase وعرضها على اللوحة
+        // 1. تحميل البكسلات الحالية فور فتح الصفحة للزوار
+        window.addEventListener('DOMContentLoaded', loadPixelsFromFirebase);
+
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(response => response.json())
             .then(data => {
-                if (!data) return; // إذا كانت قاعدة البيانات فارغة لا تفعل شيئاً
-
-                // مسح اللوحة لتجنب التكرار
                 pixelBoard.innerHTML = '';
+                if (!data) return;
+                takenPixels = data; // حفظ المحجوزات
 
-                // الدوران حول كل البكسلات المخزنة وعرضها
                 Object.keys(data).forEach(key => {
                     const pixel = data[key];
-                    // استخراج الإحداثيات من اسم المفتاح (X_Y)
                     const [x, y] = key.split('_');
 
-                    // إنشاء عنصر البكسل في صفحة الويب
                     const pixelDiv = document.createElement('div');
                     pixelDiv.className = 'user-pixel';
                     pixelDiv.style.left = `${x}px`;
                     pixelDiv.style.top = `${y}px`;
 
-                    // إنشاء رابط تشعبي لفتح موقع الزبون عند الضغط على صورته
                     const anchor = document.createElement('a');
                     anchor.href = pixel.link;
                     anchor.target = '_blank';
-                    anchor.title = `إعلان عند الإحداثيات X:${x} Y:${y}`;
 
                     const img = document.createElement('img');
                     img.src = pixel.image;
-                    img.onerror = () => { img.src = 'https://placeholder.com'; }; // صورة بديلة لو كان رابط الزبون خربان
+                    img.onerror = () => { img.src = 'https://placeholder.com'; };
 
                     anchor.appendChild(img);
                     pixelDiv.appendChild(anchor);
                     pixelBoard.appendChild(pixelDiv);
                 });
             })
-            .catch(error => console.error("خطأ أثناء جلب البكسلات من Firebase:", error));
+            .catch(error => console.error("Error loading pixels:", error));
         }
 
-        // منطق الدفع الآمن بالبلوكشين عند النقر على زر النشر
+        // 2. رصد نقرة الزبون على الشبكة لاختيار مربع فارغ أولاً
+        pixelBoard.addEventListener('click', (e) => {
+            // حساب الإحداثيات وضبطها لتطابق أقرب مربع بحجم 30 بكسل
+            const rect = pixelBoard.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // تقريب الإحداثيات لتتناسب مع خطوط الشبكة تماماً
+            currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
+            currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
+
+            // التأكد أن المربع ليس محجوزاً مسبقاً
+            if (takenPixels[`${currentX}_${currentY}`]) {
+                alert("هذا المربع محجوز ومباع بالفعل! يرجى اختيار مربع فارغ آخر.");
+                return;
+            }
+
+            // إظهار نافذة إدخال البيانات والدفع وتحديث النص
+            coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
+            paymentModal.style.display = 'flex';
+        });
+
+        // إغلاق النافذة عند الضغط على إلغاء
+        closeButton.addEventListener('click', () => { paymentModal.style.display = 'none'; });
+
+        // 3. تفعيل عملية الدفع بالبلوكشين بعد تعبئة البيانات والضغط على زر النشر
         publishButton.addEventListener('click', async () => {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
-            const pixelX = document.getElementById('pixel-x').value;
-            const pixelY = document.getElementById('pixel-y').value;
 
-            if (!pixelLink || !pixelImage || !pixelX || !pixelY) {
-                alert('الرجاء تعبئة جميع الحقول أولاً!');
+            if (!pixelLink || !pixelImage) {
+                alert('الرجاء إدخال الرابط والصورة أولاً لحجز المربع!');
                 return;
             }
 
             if (typeof window.ethereum === 'undefined') {
-                alert('لم نجد محفظة مثبتة! يرجى فتح الموقع من داخل متصفح محفظة Trust Wallet أو تثبيت Metamask لإتمام الدفع الآلي.');
+                alert('لم نجد محفظة مثبتة! يرجى فتح الموقع من متصفح محفظة Trust Wallet أو تثبيت Metamask.');
                 return;
             }
 
             try {
                 publishButton.disabled = true;
-                publishButton.innerText = "جاري الاتصال بمحفظتك...";
+                publishButton.innerText = "جاري الاتصال بمحفظتك للتحويل...";
 
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
@@ -139,38 +178,35 @@
 
                 const tx = {
                     to: MY_WALLET_ADDRESS,
-                    value: ethers.utils.parseEther("1.0") 
+                    value: ethers.utils.parseEther("1.0") // خصم 1 عملة من شبكة التاجر (مثال 1 POL)
                 };
 
-                publishButton.innerText = "برجاء تأكيد الدفع من تطبيق المحفظة...";
+                publishButton.innerText = "يرجى تأكيد دفع الـ 1\$ من تطبيق المحفظة الآن...";
 
                 const transactionResponse = await signer.sendTransaction(tx);
-                publishButton.innerText = "جاري تأكيد المعاملة على البلوكشين (انتظر ثوانٍ)...";
+                publishButton.innerText = "جاري تأكيد شبكة البلوكشين (انتظر قليلاً)...";
                 
                 const receipt = await transactionResponse.wait();
 
+                // في حال نجاح الدفع ووصول الأموال لمحفظتك، يتم الرفع فوراً لـ Firebase
                 if (receipt.status === 1) {
-                    alert('تم تأكيد وصول الـ 1\$ إلى محفظتك بنجاح! جاري النشر الآن...');
-                    saveToFirebase(pixelX, pixelY, pixelLink, pixelImage);
+                    alert('تم الدفع بنجاح! جاري تثبيت البكسل الخاص بك في مكانه المختار...');
+                    saveToFirebase(currentX, currentY, pixelLink, pixelImage);
                 } else {
-                    throw new Error("فشلت المعاملة على الشبكة");
+                    throw new Error("فشلت عملية الدفع على الشبكة");
                 }
 
             } catch (error) {
-                console.error("خطأ أثناء الدفع:", error);
-                alert("تم إلغاء عملية الدفع أو حدث خطأ في الشبكة، يرجى المحاولة مجدداً.");
+                console.error("Payment error:", error);
+                alert("تم إلغاء عملية الدفع أو حدث خطأ، يرجى إعادة المحاولة.");
                 publishButton.disabled = false;
-                publishButton.innerText = "اتصل بالمحفظة وانشر البكسل";
+                publishButton.innerText = "تأكيد الدفع (1\$ POL) والنشر";
             }
         });
 
-        // دالة الرفع الآمن والتلقائي إلى Firebase
+        // 4. دالة الحفظ التلقائي في قاعدة البيانات بعد استلام الأموال
         function saveToFirebase(x, y, link, image) {
-            const pixelData = {
-                link: link,
-                image: image,
-                timestamp: Date.now()
-            };
+            const pixelData = { link: link, image: image, timestamp: Date.now() };
 
             fetch(`${FIREBASE_URL}/pixels/${x}_${y}.json`, {
                 method: 'PUT',
@@ -178,22 +214,9 @@
                 body: JSON.stringify(pixelData)
             })
             .then(response => {
-                if (!response.ok) throw new Error('فشل الحفظ في قاعدة البيانات');
+                if (!response.ok) throw new Error('Firebase Error');
                 return response.json();
             })
             .then(data => {
-                alert('🎉 تم نشر البكسل والإعلان الخاص بك بنجاح آلي بالكامل!');
-                loadPixelsFromFirebase(); // تحديث اللوحة فوراً لعرض البكسل الجديد دون الحاجة لإعادة تحميل الصفحة بالكامل
-                publishButton.disabled = false;
-                publishButton.innerText = "اتصل بالمحفظة وانشر البكسل";
-            })
-            .catch(error => {
-                console.error("Firebase Error:", error);
-                alert("تم الدفع بنجاح والأموال في محفظتك، لكن حدثت مشكلة أثناء العرض على الموقع. يرجى مراسلة الإدارة لتنشيطه يدوياً.");
-                publishButton.disabled = false;
-                publishButton.innerText = "اتصل بالمحفظة وانشر البكسل";
-            });
-        }
-    </script>
-</body>
-</html>
+                alert('🎉 ممتاز! تم حجز ونشر البكسل الخاص بك بنجاح على الخريطة!');
+                paymentModal.style.display = 'none'; // إخفاء النافذة
