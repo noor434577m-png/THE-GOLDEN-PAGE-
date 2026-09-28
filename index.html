@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page</title>
     
-    <!-- استدعاء مكتبة Ethers.js الرسمية للبلوكشين -->
+    <!-- مكتبة البلوكشين الرسمية والمعتمدة -->
     <script src="https://cloudflare.com"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; margin: 0; }
-        .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); border: 1px solid #d4af37; }
-        h1 { color: #d4af37; margin-bottom: 5px; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; margin: 0; }
+        .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h1 { color: #d4af37; margin: 0 0 10px 0; }
         
+        /* حاوية مرنة تضمن التصفح واللمس على جميع الأجهزة دون حظر */
         .board-container { 
-            margin: 25px auto; 
-            padding: 5px;
+            margin: 20px auto; 
             overflow: auto; 
             max-width: 95%; 
             border: 3px solid #d4af37;
@@ -24,7 +24,7 @@
             display: inline-block;
         }
         
-        /* مصفوفة شبكية مادية حقيقية وملموسة من 2500 مربع (50 عمود × 50 صف) */
+        /* شبكة حقيقية وملموسة من 2500 مربع (50 عمود × 50 صف) */
         #pixel-board { 
             display: grid;
             grid-template-columns: repeat(50, 15px); 
@@ -34,7 +34,7 @@
             background-color: #ffffff; 
         }
         
-        /* تصميم المربعات المادية القابلة للنقر الفوري */
+        /* تصميم المربع الفارغ الجاهز للنقر فوراً */
         .grid-square {
             width: 15px;
             height: 15px;
@@ -47,7 +47,7 @@
             background-color: #ffeaa7; 
         }
         
-        /* تصميم البكسل عند النشر داخل الخلية */
+        /* تصميم البكسل المباع والمحمي من التعديل */
         .grid-square img { 
             width: 100%; 
             height: 100%; 
@@ -55,6 +55,7 @@
             display: block;
         }
 
+        /* النافذة المنبثقة الذكية للدفع والنشر */
         .modal {
             display: none; 
             position: fixed; 
@@ -63,22 +64,9 @@
             z-index: 99999; 
             justify-content: center; align-items: center;
         }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 440px; text-align: center; border-top: 5px solid #d4af37; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        
-        .guide-text { 
-            background-color: #fff9e6; 
-            border: 1px solid #ffeaa7; 
-            padding: 10px; 
-            border-radius: 6px; 
-            font-size: 13px; 
-            text-align: right; 
-            margin-bottom: 15px; 
-            line-height: 1.5;
-            color: #555;
-        }
-        
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; text-align: center; border-top: 5px solid #d4af37; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .guide-text { background-color: #fff9e6; border: 1px solid #ffeaa7; padding: 10px; border-radius: 6px; font-size: 13px; text-align: right; margin-bottom: 15px; line-height: 1.5; color: #555; }
         input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 14px; }
-        
         .wallet-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
         .btn-pay { color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; width: 95%; font-weight: bold; margin: auto; }
         .btn-mm { background-color: #f6851b; } 
@@ -95,7 +83,6 @@
     </div>
 
     <div class="board-container">
-        <!-- اللوحة التي ستمتلئ بـ 2500 زر حقيقي -->
         <div id="pixel-board"></div>
     </div>
 
@@ -106,8 +93,8 @@
             
             <div class="guide-text">
                 <strong>💡 إرشادات الدفع للجوال / Mobile Guide:</strong><br>
-                • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك المفضلة بالأسفل وسيتم تحويلك تلقائياً لفتح الموقع وتأكيد الحوالة من داخل التطبيق المحمي.<br>
-                • On mobile Safari/Chrome, click your wallet below to safely redirect and purchase directly inside the wallet app.
+                • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك بالأسفل لفتح الموقع تلقائياً وتأكيد التحويل من داخل التطبيق الآمن.<br>
+                • On mobile Safari/Chrome, click your wallet below to open and purchase directly inside the app.
             </div>
 
             <input type="text" id="pixel-link" placeholder="Your Website URL (https://...)">
@@ -137,8 +124,8 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. بناء الـ 2500 مربع مادياً فور فتح الصفحة لضمان الاستجابة 100% ومنع أي حظر أو اختفاء
-        function buildBlankGrid() {
+        // 1. بناء الـ 2500 مربع مادياً فوراً لضمان الظهور الفوري وقابلية النقر 100%
+        function buildGridLayout() {
             pixelBoard.innerHTML = ''; 
             for (let row = 0; row < 50; row++) {
                 for (let col = 0; col < 50; col++) {
@@ -150,9 +137,9 @@
                     square.className = 'grid-square';
                     square.id = cellId;
 
-                    // تفعيل حدث النقر الفوري على كل زر مستقل في الشبكة
+                    // تفعيل النقر المباشر لكل مربع فارغ
                     square.onclick = function() {
-                        if (takenPixels[`${xCoord}_${yCoord}`]) return; // منع التفاعل لو كان المربع مباعاً مسبقاً
+                        if (takenPixels[`${xCoord}_${yCoord}`]) return; // قفل المربع ومنع حجز المباع مسبقاً
                         currentX = xCoord;
                         currentY = yCoord;
                         coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
@@ -164,7 +151,7 @@
             }
         }
 
-        // 2. تحديث المربعات المشغولة من قاعدة البيانات في الخلفية دون تعطيل واجهة العرض
+        // 2. جلب البيانات من Firebase وتحديث المربعات المشغولة بالصور والروابط في الخلفية
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -177,23 +164,23 @@
                     const [x, y] = key.split('_');
                     const sq = document.getElementById(`sq_${x}_${y}`);
                     
-                    // قفل المربع نهائياً واستبداله بصورة ورابط العميل ومنع سرقته أو تعديله بعد الشراء
+                    // قفل المربع نهائياً بعد الشراء ومنع تعديله أو فتحه مجدداً
                     if (sq) {
                         sq.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
                         sq.style.cursor = 'default';
-                        sq.onclick = null; // إزالة إمكانية النقر والفتح لقائمة الشراء
+                        sq.onclick = null; // إزالة إمكانية النقر والفتح نهائياً
                     }
                 });
             }).catch(err => console.log(err));
         }
 
-        // إطلاق مصفوفة المربعات فوراً للزوار
-        buildBlankGrid();
+        // تشغيل البناء الفوري المستقل
+        buildGridLayout();
         loadPixelsFromFirebase();
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // دالة التوجيه الذكي للروابط العميقة (Deep Links) لحل مشكلة متصفحات الآيفون
+        // دالة التوجيه العميقة (Deep Links) للآيفون والجوال لمنع حظر المتصفحات العادية
         function handleMobileRedirect(walletType) {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             const hasWallet = (typeof window.ethereum !== 'undefined');
@@ -210,7 +197,7 @@
             return false; 
         }
 
-        // معالجة الدفع والتحقق الفولاذي والرفع لـ Firebase
+        // 3. معالجة الدفع وضمان عدم النشر أو التعديل إلا بعد تأكيد الحوالة بنجاح
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -230,3 +217,9 @@
 
             try {
                 walletButton.disabled = true;
+                walletButton.innerText = "Processing...";
+                
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+
