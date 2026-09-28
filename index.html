@@ -1,28 +1,37 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متجر بسكسلات البيكسل</title>
+    <title>The Golden Page</title>
     
     <!-- استدعاء مكتبة Ethers.js لربط المحافظ بالبلوكشين -->
     <script src="https://cloudflare.com"></script>
     
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; color: #333; }
-        .info-box { max-width: 600px; margin: auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; }
+        .info-box { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); border: 1px solid #d4af37; }
+        h1 { color: #d4af37; margin-bottom: 5px; }
         
-        /* خريطة البكسلات التفاعلية */
-        .board-container { margin: 20px auto; overflow: auto; max-width: 100%; }
+        /* حاوية الخريطة الشبكية الكبيرة مع شريط تمرير لسهولة التصفح */
+        .board-container { 
+            margin: 25px auto; 
+            overflow: auto; 
+            max-width: 100%; 
+            max-height: 80vh; 
+            border: 3px solid #d4af37;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        
+        /* لوحة الـ 2500 مربع (50 مربع عرض × 50 مربع ارتفاع) */
         #pixel-board { 
             position: relative; 
-            width: 600px; 
-            height: 600px; 
-            margin: 10px auto; 
+            width: 1500px; 
+            height: 1500px; 
             background-color: #fff; 
-            background-image: linear-gradient(to right, #eee 1px, transparent 1px), linear-gradient(to bottom, #eee 1px, transparent 1px);
-            background-size: 30px 30px; /* تقسيم الشبكة لمربعات حجمها 30 بكسل */
-            border: 2px solid #333; 
+            background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px), linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
+            background-size: 30px 30px; 
             cursor: crosshair;
         }
         .user-pixel { 
@@ -33,27 +42,30 @@
         }
         .user-pixel img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
 
-        /* نافذة إدخال البيانات والدفع (تظهر فقط بعد اختيار بكسل) */
+        /* النافذة المنبثقة لطلب الدفع بعد اختيار المربع */
         .modal {
             display: none; 
             position: fixed; 
             top: 0; left: 0; width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.5); 
+            background-color: rgba(0,0,0,0.6); 
             z-index: 100; 
             justify-content: center; align-items: center;
         }
-        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
-        .btn-pay { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; font-weight: bold; }
-        .btn-close { background-color: #f44336; margin-top: 5px; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border-top: 5px solid #d4af37; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 14px; }
+        .btn-pay { background-color: #d4af37; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; font-weight: bold; transition: background 0.2s; }
+        .btn-pay:hover { background-color: #aa8c2c; }
+        .btn-close { background-color: #f44336; margin-top: 8px; }
+        .btn-close:hover { background-color: #d32f2f; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="info-box">
-        <h2>🗺️ خريطة بكسلات البيكسل (1\$ للمربع)</h2>
-        <p>💡 **طريقة الشراء:** اضغط على أي مكان فارغ (مربع) داخل الشبكة أدناه لتحديده وافتتاح قائمة الدفع والنشر!</p>
+        <h1>The Golden Page</h1>
+        <p>💡 **How to buy:** Click on any empty square inside the grid below to select it, enter your details, and complete the automated blockchain payment!</p>
+        <p><strong>Price: 1 POL ($1) per square</strong> | Grid size: 2500 Squares available</p>
     </div>
 
     <!-- لوحة عرض الشبكة التفاعلية -->
@@ -61,17 +73,17 @@
         <div id="pixel-board"></div>
     </div>
 
-    <!-- النافذة المنبثقة (تظهر بعد اختيار المربع لطلب الدفع) -->
+    <!-- النافذة المنبثقة لطلب الدفع والنشر -->
     <div id="payment-modal" class="modal">
         <div class="modal-content">
-            <h3>اضبط بيانات البكسل المختار</h3>
-            <p>الموقع المحدد: <strong id="selected-coords">X: 0, Y: 0</strong></p>
+            <h3>Configure Your Pixel</h3>
+            <p>Selected Position: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
             
-            <input type="text" id="pixel-link" placeholder="رابط موقعك (https://...)">
-            <input type="text" id="pixel-image" placeholder="رابط صورة الإعلان المباشر">
+            <input type="text" id="pixel-link" placeholder="Your Website URL (https://...)">
+            <input type="text" id="pixel-image" placeholder="Direct Image URL (30x30 px recommended)">
             
-            <button id="publish-btn" class="btn-pay">تأكيد الدفع (1\$ POL) والنشر</button>
-            <button id="close-btn" class="btn-pay btn-close">إلغاء</button>
+            <button id="publish-btn" class="btn-pay">Pay 1 POL & Publish</button>
+            <button id="close-btn" class="btn-pay btn-close">Cancel</button>
         </div>
     </div>
 
@@ -79,7 +91,7 @@
         // --- ⚙️ الإعدادات المعتمدة والآمنة لموقعك ---
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
-        const PIXEL_SIZE = 30; // حجم البكسل الواحد ثابت على الشبكة
+        const PIXEL_SIZE = 30; // حجم المربع الواحد 30 بكسل
         // -------------------------------------------
 
         const pixelBoard = document.getElementById('pixel-board');
@@ -90,9 +102,9 @@
 
         let currentX = 0;
         let currentY = 0;
-        let takenPixels = {}; // لتخزين الأماكن المحجوزة ومنع الضغط عليها
+        let takenPixels = {}; 
 
-        // 1. تحميل البكسلات الحالية فور فتح الصفحة للزوار
+        // 1. تحميل البكسلات الحالية فور فتح الصفحة
         window.addEventListener('DOMContentLoaded', loadPixelsFromFirebase);
 
         function loadPixelsFromFirebase() {
@@ -101,7 +113,7 @@
             .then(data => {
                 pixelBoard.innerHTML = '';
                 if (!data) return;
-                takenPixels = data; // حفظ المحجوزات
+                takenPixels = data; 
 
                 Object.keys(data).forEach(key => {
                     const pixel = data[key];
@@ -128,49 +140,47 @@
             .catch(error => console.error("Error loading pixels:", error));
         }
 
-        // 2. رصد نقرة الزبون على الشبكة لاختيار مربع فارغ أولاً
+        // 2. رصد نقرة الزبون لاختيار مربع فارغ
         pixelBoard.addEventListener('click', (e) => {
-            // حساب الإحداثيات وضبطها لتطابق أقرب مربع بحجم 30 بكسل
             const rect = pixelBoard.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
-            // تقريب الإحداثيات لتتناسب مع خطوط الشبكة تماماً
+            // تقريب الإحداثيات لتتوافق مع المربعات تماماً
             currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
             currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
 
-            // التأكد أن المربع ليس محجوزاً مسبقاً
+            // منع الضغط على المربعات المحجوزة مسبقاً
             if (takenPixels[`${currentX}_${currentY}`]) {
-                alert("هذا المربع محجوز ومباع بالفعل! يرجى اختيار مربع فارغ آخر.");
+                alert("This square is already taken! Please choose an empty square.");
                 return;
             }
 
-            // إظهار نافذة إدخال البيانات والدفع وتحديث النص
+            // فتح نافذة الدفع وإظهار الإحداثيات المحددة
             coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
             paymentModal.style.display = 'flex';
         });
 
-        // إغلاق النافذة عند الضغط على إلغاء
         closeButton.addEventListener('click', () => { paymentModal.style.display = 'none'; });
 
-        // 3. تفعيل عملية الدفع بالبلوكشين بعد تعبئة البيانات والضغط على زر النشر
+        // 3. تفعيل الدفع الآلي بالبلوكشين عند النقر على التأكيد
         publishButton.addEventListener('click', async () => {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
 
             if (!pixelLink || !pixelImage) {
-                alert('الرجاء إدخال الرابط والصورة أولاً لحجز المربع!');
+                alert('Please enter both your Website URL and Image URL!');
                 return;
             }
 
             if (typeof window.ethereum === 'undefined') {
-                alert('لم نجد محفظة مثبتة! يرجى فتح الموقع من متصفح محفظة Trust Wallet أو تثبيت Metamask.');
+                alert('No Crypto Wallet detected! Please use Trust Wallet browser or MetaMask plugin to purchase.');
                 return;
             }
 
             try {
                 publishButton.disabled = true;
-                publishButton.innerText = "جاري الاتصال بمحفظتك للتحويل...";
+                publishButton.innerText = "Connecting to wallet...";
 
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
@@ -178,33 +188,33 @@
 
                 const tx = {
                     to: MY_WALLET_ADDRESS,
-                    value: ethers.utils.parseEther("1.0") // خصم 1 عملة من شبكة التاجر (مثال 1 POL)
+                    value: ethers.utils.parseEther("1.0") // خصم 1 POL وإرسالها لمحفظتك
                 };
 
-                publishButton.innerText = "يرجى تأكيد دفع الـ 1\$ من تطبيق المحفظة الآن...";
+                publishButton.innerText = "Please confirm payment in your wallet...";
 
                 const transactionResponse = await signer.sendTransaction(tx);
-                publishButton.innerText = "جاري تأكيد شبكة البلوكشين (انتظر قليلاً)...";
+                publishButton.innerText = "Confirming on Blockchain (Please wait)...";
                 
                 const receipt = await transactionResponse.wait();
 
-                // في حال نجاح الدفع ووصول الأموال لمحفظتك، يتم الرفع فوراً لـ Firebase
+                // في حال تأكيد البلوكشين للعملية بنسبة 100%، يتم الحفظ التلقائي
                 if (receipt.status === 1) {
-                    alert('تم الدفع بنجاح! جاري تثبيت البكسل الخاص بك في مكانه المختار...');
+                    alert('Payment Confirmed! Publishing your pixel now...');
                     saveToFirebase(currentX, currentY, pixelLink, pixelImage);
                 } else {
-                    throw new Error("فشلت عملية الدفع على الشبكة");
+                    throw new Error("Blockchain transaction failed");
                 }
 
             } catch (error) {
                 console.error("Payment error:", error);
-                alert("تم إلغاء عملية الدفع أو حدث خطأ، يرجى إعادة المحاولة.");
+                alert("Payment cancelled or network error occurred. Please try again.");
                 publishButton.disabled = false;
-                publishButton.innerText = "تأكيد الدفع (1\$ POL) والنشر";
+                publishButton.innerText = "Pay 1 POL & Publish";
             }
         });
 
-        // 4. دالة الحفظ التلقائي في قاعدة البيانات بعد استلام الأموال
+        // 4. دالة الحفظ التلقائي في قاعدة البيانات
         function saveToFirebase(x, y, link, image) {
             const pixelData = { link: link, image: image, timestamp: Date.now() };
 
@@ -213,10 +223,3 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(pixelData)
             })
-            .then(response => {
-                if (!response.ok) throw new Error('Firebase Error');
-                return response.json();
-            })
-            .then(data => {
-                alert('🎉 ممتاز! تم حجز ونشر البكسل الخاص بك بنجاح على الخريطة!');
-                paymentModal.style.display = 'none'; // إخفاء النافذة
