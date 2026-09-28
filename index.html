@@ -5,15 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>متجر بسكسلات البيكسل</title>
     
-    <!-- 1. استدعاء مكتبة Ethers.js الرسمية لربط المحافظ بالبلوكشين -->
+    <!-- 1. استدعاء مكتبة Ethers.js لربط المحافظ بالبلوكشين -->
     <script src="https://cloudflare.com"></script>
     
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px; }
         input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
-        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; }
+        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 95%; font-weight: bold; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        
+        /* تصميم لوحة عرض البكسلات المشتروات */
+        .board-title { margin-top: 20px; font-weight: bold; }
+        #pixel-board { 
+            position: relative; 
+            width: 500px; 
+            height: 500px; 
+            margin: 20px auto; 
+            background-color: #fff; 
+            border: 2px dashed #aaa; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .user-pixel { 
+            position: absolute; 
+            width: 30px; 
+            height: 30px; 
+            border: 1px solid #eee;
+            transition: transform 0.2s;
+        }
+        .user-pixel:hover { transform: scale(1.2); z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .user-pixel img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -24,35 +46,84 @@
         
         <!-- حقول الإدخال للزبون -->
         <input type="text" id="pixel-link" placeholder="رابط موقعك (https://...)">
-        <input type="text" id="pixel-image" placeholder="رابط صورة البكسل">
-        <input type="number" id="pixel-x" placeholder="الإحداثي X">
-        <input type="number" id="pixel-y" placeholder="الإحداثي Y">
+        <input type="text" id="pixel-image" placeholder="رابط صورة البكسل (رابط مباشر للـ Image)">
+        <input type="number" id="pixel-x" placeholder="الإحداثي X (من 0 إلى 470)">
+        <input type="number" id="pixel-y" placeholder="الإحداثي Y (من 0 إلى 470)">
         
         <!-- زر الدفع والنشر التلقائي الآمن -->
         <button id="publish-btn">اتصل بالمحفظة وانشر البكسل</button>
     </div>
 
+    <h3 class="board-title">🗺️ خريطة إعلانات البكسل الحالية:</h3>
+    <!-- اللوحة التي ستظهر عليها بكسلات الزبائن تلقائياً -->
+    <div id="pixel-board"></div>
+
     <script>
         // --- ⚙️ الإعدادات الرسمية والمؤكدة لموقعك ---
-        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; // محفظتك المربوطة
-        const FIREBASE_URL = "https://the-golden-page-default-rtdb.firebaseio.com"; // رابط قاعدة بياناتك الصحيح
+        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
+        const FIREBASE_URL = "https://firebaseio.com"; 
         // -------------------------------------------
 
         const publishButton = document.getElementById('publish-btn');
+        const pixelBoard = document.getElementById('pixel-board');
 
+        // استدعاء دالة جلب وعرض البكسلات فور تحميل الصفحة للزوار
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPixelsFromFirebase();
+        });
+
+        // دالة قراءة وجلب البكسلات من Firebase وعرضها على اللوحة
+        function loadPixelsFromFirebase() {
+            fetch(`${FIREBASE_URL}/pixels.json`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data) return; // إذا كانت قاعدة البيانات فارغة لا تفعل شيئاً
+
+                // مسح اللوحة لتجنب التكرار
+                pixelBoard.innerHTML = '';
+
+                // الدوران حول كل البكسلات المخزنة وعرضها
+                Object.keys(data).forEach(key => {
+                    const pixel = data[key];
+                    // استخراج الإحداثيات من اسم المفتاح (X_Y)
+                    const [x, y] = key.split('_');
+
+                    // إنشاء عنصر البكسل في صفحة الويب
+                    const pixelDiv = document.createElement('div');
+                    pixelDiv.className = 'user-pixel';
+                    pixelDiv.style.left = `${x}px`;
+                    pixelDiv.style.top = `${y}px`;
+
+                    // إنشاء رابط تشعبي لفتح موقع الزبون عند الضغط على صورته
+                    const anchor = document.createElement('a');
+                    anchor.href = pixel.link;
+                    anchor.target = '_blank';
+                    anchor.title = `إعلان عند الإحداثيات X:${x} Y:${y}`;
+
+                    const img = document.createElement('img');
+                    img.src = pixel.image;
+                    img.onerror = () => { img.src = 'https://placeholder.com'; }; // صورة بديلة لو كان رابط الزبون خربان
+
+                    anchor.appendChild(img);
+                    pixelDiv.appendChild(anchor);
+                    pixelBoard.appendChild(pixelDiv);
+                });
+            })
+            .catch(error => console.error("خطأ أثناء جلب البكسلات من Firebase:", error));
+        }
+
+        // منطق الدفع الآمن بالبلوكشين عند النقر على زر النشر
         publishButton.addEventListener('click', async () => {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
             const pixelX = document.getElementById('pixel-x').value;
             const pixelY = document.getElementById('pixel-y').value;
 
-            // 1. التأكد من إدخال البيانات كاملة
             if (!pixelLink || !pixelImage || !pixelX || !pixelY) {
                 alert('الرجاء تعبئة جميع الحقول أولاً!');
                 return;
             }
 
-            // 2. التأكد من وجود محفظة (Web3) في المتصفح
             if (typeof window.ethereum === 'undefined') {
                 alert('لم نجد محفظة مثبتة! يرجى فتح الموقع من داخل متصفح محفظة Trust Wallet أو تثبيت Metamask لإتمام الدفع الآلي.');
                 return;
@@ -62,12 +133,10 @@
                 publishButton.disabled = true;
                 publishButton.innerText = "جاري الاتصال بمحفظتك...";
 
-                // طلب الإذن للاتصال بمحفظة الزبون
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
 
-                // إعداد الحوالة بقيمة 1 دولار من عملة الشبكة الأساسية (POL)
                 const tx = {
                     to: MY_WALLET_ADDRESS,
                     value: ethers.utils.parseEther("1.0") 
@@ -75,14 +144,11 @@
 
                 publishButton.innerText = "برجاء تأكيد الدفع من تطبيق المحفظة...";
 
-                // دفع الزبون للـ 1 دولار من محفظته
                 const transactionResponse = await signer.sendTransaction(tx);
                 publishButton.innerText = "جاري تأكيد المعاملة على البلوكشين (انتظر ثوانٍ)...";
                 
-                // الانتظار الفعلي حتى تنجح العملية على شبكة البلوكشين بالكامل
                 const receipt = await transactionResponse.wait();
 
-                // إذا كانت حالة التحويل ناجحة 100%، يتم النشر للزبون
                 if (receipt.status === 1) {
                     alert('تم تأكيد وصول الـ 1\$ إلى محفظتك بنجاح! جاري النشر الآن...');
                     saveToFirebase(pixelX, pixelY, pixelLink, pixelImage);
@@ -117,7 +183,9 @@
             })
             .then(data => {
                 alert('🎉 تم نشر البكسل والإعلان الخاص بك بنجاح آلي بالكامل!');
-                location.reload(); // تحديث الصفحة لرؤية الإعلان الجديد
+                loadPixelsFromFirebase(); // تحديث اللوحة فوراً لعرض البكسل الجديد دون الحاجة لإعادة تحميل الصفحة بالكامل
+                publishButton.disabled = false;
+                publishButton.innerText = "اتصل بالمحفظة وانشر البكسل";
             })
             .catch(error => {
                 console.error("Firebase Error:", error);
