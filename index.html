@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page - Pixel Advertising Board</title>
-    <!-- تضمين مكتبات Firebase الرسمية لحل مشكلة اختفاء المربعات نهائياً -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-    <!-- مكتبة ethers.js للاتصال بمحفظة الدفع الذكية -->
+    <!-- استدعاء مكتبة ethers.js فقط للربط الآمن مع المحفظة -->
     <script src="https://cloudflare.com"></script>
     <style>
         body { 
@@ -153,20 +150,10 @@
     </div>
 
     <script>
-        // تهيئة اتصال Firebase بشكل رسمي ومستقر يمنع حظر الحماية تماماً
-        const firebaseConfig = {
-            apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
-            authDomain: "://firebaseapp.com",
-            databaseURL: "https://firebaseio.com",
-            projectId: "the-golden-page",
-            storageBucket: "the-golden-page.firebasestorage.app",
-            messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // إعدادات محفظة وعقد الدفع USDT الذكي لشبكة BSC
+        // رابط الـ Firebase الخاص بك بصيغة REST API المستقرة
+        var dbUrl = "https://firebaseio.com";
+        
+        // إعدادات محفظتك وعقد USDT على شبكة BSC الذكية لضمان الدفع الآلي الآمن
         const MY_WALLET = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"; 
         const USDT_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
@@ -178,7 +165,7 @@
         var selectedPixelId = null;
         var totalPixels = 2000; 
 
-        // توليد المربعات الـ 2000 الخاصة بك فوراً وبشكل مستقل تماماً
+        // 1. توليد المربعات الـ 2000 فوراً في أول سطر برمي لضمان ظهورها دائماً دون أي تأخير أو اختفاء
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -188,23 +175,25 @@
             grid.appendChild(pixel);
         }
 
-        // جلب البيانات الحية باستخدام حزمة الـ SDK لضمان بقاء المربعات ظاهرة
+        // 2. جلب البيانات لتلوين المربعات المباعة فقط دون التأثير على الهيكل الأساسي للشبكة
         function loadLivePixels() {
-            database.ref('pixels').once('value').then(function(snapshot) {
-                var data = snapshot.val();
-                if (!data) return;
-                for (var i = 1; i <= totalPixels; i++) {
-                    if (data[i]) {
-                        var pixelDiv = document.getElementById('pixel-' + i);
-                        if (pixelDiv) {
-                            pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
-                            pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
-                            pixelDiv.style.backgroundColor = '#fff';
-                            setClickAction(pixelDiv, data[i].link);
+            fetch(dbUrl + ".json")
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (!data) return;
+                    for (var i = 1; i <= totalPixels; i++) {
+                        if (data[i]) {
+                            var pixelDiv = document.getElementById('pixel-' + i);
+                            if (pixelDiv) {
+                                pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
+                                pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
+                                pixelDiv.style.backgroundColor = '#fff';
+                                setClickAction(pixelDiv, data[i].link);
+                            }
                         }
                     }
-                }
-            }).catch(function(error) { console.log("Firebase Load Error:", error); });
+                })
+                .catch(function(error) { console.log("Fetch Error handled: Grid remains visible."); });
         }
 
         function setClickAction(element, link) {
@@ -226,7 +215,7 @@
             overlay.style.display = 'none';
         };
 
-        // زر الشراء الآمن والآلي: يخصم من محفظة العميل أولاً، وإذا تمت العملية بنجاح يحجز البكسل
+        // زر الدفع الآمن: يخصم من محفظة العميل أولاً، وإذا تمت العملية بنجاح يتم الحجز تلقائياً
         document.getElementById('pay-btn').addEventListener('click', async function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
@@ -251,9 +240,17 @@
                 var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
                 var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT
 
-                // فتح نافذة الدفع الإجبارية للعميل
+                // فتح بوابة الخصم التلقائي بداخل Trust Wallet بشكل إجباري
                 var tx = await usdtContract.transfer(MY_WALLET, amount);
                 
                 document.getElementById('pay-btn').innerText = "Verifying on Blockchain...";
-                await tx.wait(); // الكود يتوقف هنا تماماً ولن يقوم بالتحديث إلا إذا وصلت الأموال لمحفظتك
+                await tx.wait(); // الانتظار الإجباري: لن يتم الانتقال للسطر التالي إلا بعد وصول الـ 1 دولار لمحفظتك
 
+                // طالما تخطينا السطر السابق، الأموال وصلت بنجاح، نقوم الآن بحجز البكسل
+                var updateUrl = dbUrl + "/" + selectedPixelId + ".json";
+                var payload = JSON.stringify({ logo: logo, link: link });
+
+                fetch(updateUrl, { method: "PUT", body: payload })
+                    .then(function(response) {
+                        if (response.ok) {
+                            alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved.");
