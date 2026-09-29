@@ -18,31 +18,41 @@
             border-radius: 8px;
             background-color: #fff;
             display: inline-block;
-            position: relative;
         }
         
-        /* إعدادات الشبكة المحدثة */
+        /* شبكة حقيقية مقسمة برمجياً */
         #pixel-board { 
-            position: relative;
+            display: grid;
+            grid-template-columns: repeat(40, 20px); /* 40 عمود × 20 بيكسل = 800 بيكسل */
+            grid-template-rows: repeat(40, 20px);    /* 40 صف × 20 بيكسل = 800 بيكسل */
             width: 800px; 
             height: 800px; 
             background-color: #ffffff; 
-            background-image: linear-gradient(to right, #ccc 1px, transparent 1px), linear-gradient(to bottom, #ccc 1px, transparent 1px);
-            background-size: 20px 20px; 
-            cursor: crosshair;
             touch-action: none; 
         }
         
-        /* صيغة البيكسل الجديدة لتفادي مشاكل عدم القابلية للضغط على الجوال */
+        /* المربعات الفارغة الحقيقية */
+        .empty-pixel {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #eee;
+            box-sizing: border-box;
+            cursor: crosshair;
+            background-color: #fff;
+            transition: background-color 0.2s;
+        }
+        .empty-pixel:hover {
+            background-color: #ffeaa7; /* تغيير اللون عند التمرير بالماوس للتأكيد على أنه مربع حقيقي */
+        }
+        
+        /* المربعات المباعة */
         .user-pixel {
-            position: absolute;
             width: 20px;
             height: 20px;
             box-sizing: border-box;
-            z-index: 999;
         }
-        .user-pixel a { display: block; width: 100%; height: 100%; pointer-events: auto; }
-        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .user-pixel a { display: block; width: 100%; height: 100%; }
+        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         .modal {
             display: none; 
@@ -67,7 +77,7 @@
 
     <div class="info-box">
         <h1>The Golden Page</h1>
-        <p><strong>السعر: 1 POL (\$1) لكل مربع</strong> | حجم الشبكة: 1600 مربع</p>
+        <p><strong>السعر: 1 POL (\$1) لكل مربع</strong> | حجم الشبكة: 1600 مربع حقيقي</p>
     </div>
 
     <div class="board-container">
@@ -76,8 +86,8 @@
 
     <div id="payment-modal" class="modal">
         <div class="modal-content">
-            <h3>إعداد وشراء البيكسل</h3>
-            <p>الموقع المحدد: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
+            <h3>إعداد وشراء البيكسل الحقيقي</h3>
+            <p>المربع المحدد: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
             
             <div class="guide-text">
                 <strong>💡 إرشادات الدفع للجوال:</strong><br>
@@ -95,14 +105,12 @@
     </div>
 
     <script>
-        // تنبيه هام جداً: تأكد من تغيير هذا الرابط برابط الفايربيس الخاص بك
         const FIREBASE_URL = "https://firebaseio.com"; 
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         
-        // الأبعاد القياسية الجديدة المعدلة (20 بيكسل بدلاً من 15)
         const PIXEL_SIZE = 20;
-        const BOARD_WIDTH = 800;
-        const BOARD_HEIGHT = 800;
+        const COLUMNS = 40;
+        const ROWS = 40;
 
         const pixelBoard = document.getElementById('pixel-board');
         const paymentModal = document.getElementById('payment-modal');
@@ -114,71 +122,67 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // جلب وعرض البيانات وحل مشكلة عدم القابلية للضغط
+        // دالة بناء الشبكة بمربعات حقيقية ملموسة تفاعلية
+        function buildRealGrid(data) {
+            pixelBoard.innerHTML = ""; // تنظيف اللوحة
+            
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLUMNS; col++) {
+                    const x = col * PIXEL_SIZE;
+                    const y = row * PIXEL_SIZE;
+                    const pixelKey = `${x}_${y}`;
+                    
+                    if (data && data[pixelKey]) {
+                        // إذا كان المربع مباعاً، قم برسمه كـ عنصر مباع يحتوي على رابط
+                        const p = data[pixelKey];
+                        const soldDiv = document.createElement('div');
+                        soldDiv.className = 'user-pixel';
+                        soldDiv.innerHTML = `<a href="${p.link}" target="_blank" rel="noopener"><img src="${p.image}"></a>`;
+                        pixelBoard.appendChild(soldDiv);
+                    } else {
+                        // إذا كان المربع فارغاً، قم بإنشاء زر مربع حقيقي قابل للضغط والتفاعل
+                        const emptyDiv = document.createElement('div');
+                        emptyDiv.className = 'empty-pixel';
+                        emptyDiv.dataset.x = x;
+                        emptyDiv.dataset.y = y;
+                        
+                        // تفعيل النقر المباشر على هذا المربع بالتحديد
+                        emptyDiv.addEventListener('click', () => openPurchaseModal(x, y));
+                        emptyDiv.addEventListener('touchend', (e) => {
+                            e.preventDefault();
+                            openPurchaseModal(x, y);
+                        });
+                        
+                        pixelBoard.appendChild(emptyDiv);
+                    }
+                }
+            }
+        }
+
+        // جلب البيانات من فايربيس ثم بناء الشبكة الحقيقية
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
-                takenPixels = data; 
-                
-                const oldPixels = pixelBoard.querySelectorAll('.user-pixel');
-                oldPixels.forEach(el => el.remove());
-
-                Object.keys(data).forEach(key => {
-                    const p = data[key];
-                    if(!p) return;
-                    const [x, y] = key.split('_');
-                    
-                    const pixelDiv = document.createElement('div');
-                    pixelDiv.className = 'user-pixel';
-                    pixelDiv.style.left = `${x}px`;
-                    pixelDiv.style.top = `${y}px`;
-
-                    pixelDiv.innerHTML = `<a href="${p.link}" target="_blank" rel="noopener"><img src="${p.image}"></a>`;
-                    pixelBoard.appendChild(pixelDiv);
-                });
-            }).catch(err => console.log("Firebase Error:", err));
+                takenPixels = data || {}; 
+                buildRealGrid(takenPixels);
+            }).catch(err => {
+                console.log("Firebase Error:", err);
+                buildRealGrid({}); // بناء شبكة فارغة في حال حدوث خطأ أو مشروع جديد
+            });
         }
 
-        loadPixelsFromFirebase();
-
-        // الدالة المحدثة بدقة لاحتساب الإحداثيات الجديدة ومقاومة التزحزح بالجوال
-        function handleInteraction(clientX, clientY) {
-            const rect = pixelBoard.getBoundingClientRect();
-            const clickX = clientX - rect.left;
-            const clickY = clientY - rect.top;
-
-            currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
-            currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
-
-            if (currentX < 0 || currentX >= BOARD_WIDTH || currentY < 0 || currentY >= BOARD_HEIGHT) return;
-
-            // إذا كان البيكسل محجوزاً مسبقاً، نتركه ليتولى الرابط نقله تلقائياً ولا نفتح نافذة الدفع
-            if (takenPixels[`${currentX}_${currentY}`]) {
-                return; 
-            }
-
+        function openPurchaseModal(x, y) {
+            currentX = x;
+            currentY = y;
             coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
             paymentModal.style.display = 'flex';
         }
 
-        // معالجة الضغطات للكمبيوتر والجوال وحفظ استجابة الروابط
-        pixelBoard.addEventListener('click', function(e) {
-            if (e.target !== pixelBoard) return; 
-            handleInteraction(e.clientX, e.clientY);
-        });
-
-        pixelBoard.addEventListener('touchend', function(e) {
-            if (e.target !== pixelBoard) return;
-            e.preventDefault(); 
-            const touch = e.changedTouches[0];
-            handleInteraction(touch.clientX, touch.clientY);
-        });
-
+        loadPixelsFromFirebase();
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // الدفع التلقائي وحفظ البيانات فورا بعد نجاح العملية
+        // نظام الدفع التلقائي والحفظ الفوري
         btnPayNow.onclick = async () => {
             const clientLink = document.getElementById('pixel-link').value.trim();
             const clientImage = document.getElementById('pixel-image').value.trim();
@@ -208,10 +212,10 @@
                     value: ethers.utils.parseEther("1.0") 
                 });
 
-                btnPayNow.innerText = "جاري تأكيد المعاملة على الشبكة...";
+                btnPayNow.innerText = "جاري تأكيد المعاملة...";
                 await tx.wait(); 
 
-                btnPayNow.innerText = "جاري حفظ البيكسل وتحديث الموقع...";
+                btnPayNow.innerText = "جاري حفظ البيكسل الحقيقي...";
 
                 const pixelKey = `${currentX}_${currentY}`;
                 const newPixelData = {};
@@ -228,7 +232,3 @@
 
                 alert("تهانينا! تم الشراء بنجاح وتحديث البيكسل الخاص بك تلقائياً.");
                 paymentModal.style.display = 'none';
-                loadPixelsFromFirebase(); 
-
-            } catch (error) {
-                console.error(error);
