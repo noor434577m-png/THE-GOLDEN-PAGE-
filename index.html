@@ -20,7 +20,7 @@
             display: inline-block;
         }
         
-        /* شبكة صلبة مستقلة تفتح فوراً في أقل من 0.01 ثانية */
+        /* شبكة صلبة مستقلة تظهر فوراً وتتجاوب مع اللمس والنقر */
         #pixel-board { 
             position: relative;
             width: 750px; 
@@ -29,6 +29,8 @@
             background-image: linear-gradient(to right, #ccc 1px, transparent 1px), linear-gradient(to bottom, #ccc 1px, transparent 1px);
             background-size: 15px 15px; 
             cursor: crosshair;
+            /* منع المتصفح من تجميد الشاشة أثناء السحب أو اللمس مطولاً */
+            touch-action: auto; 
         }
         
         .user-pixel {
@@ -93,7 +95,6 @@
     </div>
 
     <script>
-        // إعدادات محفظتك وقاعدة بيانات الفايربيس الحقيقية الثابتة والمؤمنة
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
         const PIXEL_SIZE = 15;
@@ -109,7 +110,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. جلب البيانات من Firebase وتحديث المربعات المشغولة تلقائياً
+        // 1. جلب البيانات وتحديث اللوحة في الخلفية
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -137,29 +138,46 @@
 
         loadPixelsFromFirebase();
 
-        // 2. احتساب النقر واللمس المباشر على الخريطة
-        pixelBoard.onclick = function(e) {
-            if (e.target !== pixelBoard) return;
-
+        // دالة مركزية موحدة لاحتساب موقع النقر الفعلي بدقة ومقاومة أخطاء الشاشات والجوالات
+        function handleBoardClick(clientX, clientY) {
             const rect = pixelBoard.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            
+            // احتساب الموقع الفعلي مع خصم أي انزياح ناتج عن الـ Scroll أو حجم الشاشة
+            const clickX = clientX - rect.left;
+            const clickY = clientY - rect.top;
 
             currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
             currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
 
+            // حماية الحدود لضمان النقر داخل الـ 750px فقط
+            if (currentX < 0 || currentX >= 750 || currentY < 0 || currentY >= 750) return;
+
+            // قفل المربع ومنع حجز أو تعديل المربعات المباعة مسبقاً
             if (takenPixels[`${currentX}_${currentY}`]) {
-                alert("This square is already taken and cannot be modified!");
-                return;
+                return; 
             }
 
             coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
             paymentModal.style.display = 'flex';
-        };
+        }
+
+        // 2. تفعيل النقر للكمبيوتر (Mouse)
+        pixelBoard.addEventListener('click', function(e) {
+            if (e.target !== pixelBoard) return; // فتح رابط العميل لو كان المربع مباعاً
+            handleBoardClick(e.clientX, e.clientY);
+        });
+
+        // 3. تفعيل اللمس السريع الفوري المخصص للهواتف والآيفون (Touch) لضمان الاستجابة 100%
+        pixelBoard.addEventListener('touchend', function(e) {
+            if (e.target !== pixelBoard) return;
+            // جلب إحداثيات أول إصبع لمس الشاشة
+            const touch = e.changedTouches[0];
+            handleBoardClick(touch.clientX, touch.clientY);
+        });
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // دالة التوجيه العميقة (Deep Links) للجوال لمنع حظر المتصفحات العادية
+        // دالة التوجيه العميقة للروابط للجوال
         function handleMobileRedirect(walletType) {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             const hasWallet = (typeof window.ethereum !== 'undefined');
@@ -176,7 +194,7 @@
             return false; 
         }
 
-        // 3. معالجة الدفع المباشر والآمن عبر واجهة المحفظة المتصفحة (دون الحاجة لمكتبات خارجية)
+        // 4. معالجة الدفع المباشر والآمن والمحمي
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -198,24 +216,8 @@
                 walletButton.disabled = true;
                 walletButton.innerText = "Processing...";
                 
-                // طلب ربط الحسابات مباشرة من لغة المتصفح الأساسية
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const fromAccount = accounts[0];
 
-                // تجهيز معاملة التحويل بقيمة 1 عملة (بالمقدار السداسي عشر الهيكس لتفادي أخطاء المكاتب الخرجية)
                 const txParams = {
                     from: fromAccount,
-                    to: MY_WALLET_ADDRESS,
-                    value: '0xde0b6b3a7640000', // القيمة تساوي تماماً 1.0 بعملة البلوكشين (10^18 Wei)
-                };
-
-                walletButton.innerText = "Confirm in wallet...";
-                // إرسال الحوالة وانتظار موافقة المستخدم في تطبيقه
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [txParams],
-                });
-
-                walletButton.innerText = "Verifying...";
-
-                // التحقق من الحفظ والرفع التلقائي لـ Firebase فور صدور رقم المعاملة بنجاح
