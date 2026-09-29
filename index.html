@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page - Pixel Advertising Board</title>
-    <!-- استدعاء مكتبة ethers.js الضرورية للتحقق من الدفع الآلي -->
+    <!-- استدعاء مكتبة ethers.js للتحقق الآمن من الدفع -->
     <script src="https://cloudflare.com"></script>
     <style>
         body { 
@@ -35,7 +35,7 @@
         #grid-container { 
             display: grid; 
             grid-template-columns: repeat(50, 16px); 
-            grid-template-rows: repeat(40, 16px); /* تم ضبطها لتناسب 2000 بكسل */
+            grid-template-rows: repeat(40, 16px); /* 50 عمود × 40 صف = 2000 بكسل */
             gap: 1px; 
             justify-content: center; 
             width: 850px; 
@@ -150,7 +150,6 @@
     </div>
 
     <script>
-        // إعدادات الروابط والمحفظة وعقد USDT على شبكة BSC
         var dbUrl = "https://firebaseio.com";
         const MY_WALLET = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"; 
@@ -161,8 +160,9 @@
         var overlay = document.getElementById('modal-overlay');
         var pixelDisplay = document.getElementById('pixel-number-display');
         var selectedPixelId = null;
-        var totalPixels = 2000; // تم تعديلها لـ 2000 بكسل بناءً على طلبك الأول
+        var totalPixels = 2000; 
 
+        // الخطوة 1: بناء الشبكة الـ 2000 بكسل في الواجهة أولاً بشكل فوري ومستقل لمنع اختفائها نهائياً
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -172,6 +172,7 @@
             grid.appendChild(pixel);
         }
 
+        // الخطوة 2: جلب البيانات وتحديث حالة البكسلات المباعة من السيرفر بعد استقرار واجهة العرض
         function loadLivePixels() {
             fetch(dbUrl + ".json")
                 .then(function(response) { return response.json(); })
@@ -198,7 +199,6 @@
 
         function setOpenModalAction(element, index) {
             element.onclick = function() {
-                // منع فتح النافذة للبكسلات المباعة بالفعل
                 if (element.style.backgroundImage) return; 
                 selectedPixelId = index;
                 pixelDisplay.innerText = index;
@@ -212,7 +212,7 @@
             overlay.style.display = 'none';
         };
 
-        // الـ Logic الآمن للدفع: لا يتم إرسال البيانات لـ Firebase إلا بعد نجاح المعاملة للبلوكشين
+        // الـ Logic الآمن لحماية البكسلات: التحقق من معالجة الدفع الرقمي أولاً وقبل إرسال أي بيانات لقاعدة البيانات
         document.getElementById('pay-btn').addEventListener('click', async function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
@@ -237,13 +237,13 @@
                 var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
                 var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT
 
-                // فتح محفظة العميل لطلب الأموال بشكل حقيقي وآلي
+                // استدعاء بوابة الدفع الآلية من محفظة العميل بشكل إجباري
                 var tx = await usdtContract.transfer(MY_WALLET, amount);
                 
                 document.getElementById('pay-btn').innerText = "Verifying on Blockchain...";
-                await tx.wait(); // الكود سينتظر هنا ولن يتخطى هذه الخطوة إلا إذا وصلت الأموال بنجاح
+                await tx.wait(); // الكود يتوقف تماماً هنا ولن يمرر البيانات حتى تتأكد المعاملة وتصل الأموال لمحفظتك حقيقياً
 
-                // طالما وصلنا هنا، المعاملة نجحت 100% والأموال في محفظتك، الآن نرفع البيانات بأمان
+                // بعد نجاح الدفع الآلي الكامل، يتم حفظ وحجز البكسل
                 var updateUrl = dbUrl + "/" + selectedPixelId + ".json";
                 var payload = JSON.stringify({ logo: logo, link: link });
 
@@ -254,4 +254,3 @@
                             closeModal();
                             document.getElementById('logo-url').value = '';
                             document.getElementById('site-url').value = '';
-                            loadLivePixels();
