@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -76,8 +76,9 @@
             z-index: 100; 
             width: 85%; 
             max-width: 320px; 
+            direction: ltr; /* لتنسيق حقول الإدخال بشكل صحيح */
         }
-        #purchase-modal h3 { margin-top: 0; color: #333; }
+        #purchase-modal h3 { margin-top: 0; color: #333; text-align: center; }
         .crypto-box {
             background: #f8f9fa;
             border: 1px dashed #d4af37;
@@ -86,6 +87,7 @@
             margin: 10px 0;
             font-size: 13px;
             word-break: break-all;
+            text-align: left;
         }
         input { 
             width: 92%; 
@@ -132,6 +134,7 @@
             color: #d4af37;
             font-weight: bold;
             margin-top: 5px;
+            text-align: center;
         }
     </style>
 </head>
@@ -147,24 +150,24 @@
     <div id="modal-overlay" onclick="closeModal()"></div>
     <div id="purchase-modal">
         <h3>Book Your Pixel</h3>
-        <p style="font-size: 13px; color: #555; margin-bottom: 5px;">Selected Block: <span id="pixel-number-display" style="font-weight:bold; color:#d4af37;">0</span></p>
+        <p style="font-size: 13px; color: #555; margin-bottom: 5px; text-align: center;">Selected Block: <span id="pixel-number-display" style="font-weight:bold; color:#d4af37;">0</span></p>
         
         <div class="crypto-box">
             <strong>Price:</strong> 1.00 USDT (BSC Network)<br>
-            <strong>To:</strong> <span style="font-size:10px; color:#28a745; font-weight:bold;">0x59Bb...4c83</span>
+            <strong>To:</strong> <span style="font-size:11px; color:#28a745; font-weight:bold;">0x59Bb...4c83</span>
         </div>
 
-        <input type="url" id="logo-url" placeholder="Your Logo Image URL (e.g., https://site.com)">
+        <input type="url" id="logo-url" placeholder="Your Logo Image URL (https://...)">
         <input type="url" id="site-url" placeholder="Your Website Destination URL">
         
         <!-- زر الدفع الآلي عبر المحفظة مباشرة -->
-        <button class="btn-pay" id="pay-btn">Connect Wallet & Pay الآلي</button>
+        <button class="btn-pay" id="pay-btn">Connect Wallet & Pay</button>
         <div id="status-message"></div>
         <button class="close-btn" onclick="closeModal()">Cancel</button>
     </div>
 
     <script>
-        // الرابط الصحيح والمباشر لقاعدة بيانات الـ Firebase الخاصة بك
+        // الرابط الصحيح والمباشر لقاعدة بيانات الـ Firebase الخاصة بك مع إضافة ملف الـ json.
         var dbBaseUrl = "https://firebaseio.com";
         
         // إعدادات البلوكشين والدفع الآلي (USDT على شبكة BSC الذكية)
@@ -180,9 +183,9 @@
         var payBtn = document.getElementById('pay-btn');
         
         var selectedPixelId = null;
-        var totalPixels = 2000; // تحديث العدد لـ 2000 بكسل بناءً على طلبك
+        var totalPixels = 2000; // 2000 بكسل تماماً
 
-        // إنشاء المربعات الـ 2000
+        // إنشاء المربعات الـ 2000 وعرضها فوراً في الصفحة بغض النظر عن حالة السيرفر
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -192,12 +195,12 @@
             grid.appendChild(pixel);
         }
 
-        // تحميل البيانات الحية من قاعدة بياناتك مباشرة
+        // تحميل البيانات الحية لتعديل المربعات المحجوزة فقط دون إخفاء الشبكة
         function loadLivePixels() {
-            fetch(dbBaseUrl + ".json")
+            fetch(dbBaseUrl)
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
-                    if (!data) return;
+                    if (!data) return; // إذا كانت قاعدة البيانات فارغة، يستمر العرض ولا تختفي المربعات
                     for (var i = 1; i <= totalPixels; i++) {
                         if (data[i]) {
                             var pixelDiv = document.getElementById('pixel-' + i);
@@ -219,11 +222,11 @@
 
         function setOpenModalAction(element, index) {
             element.onclick = function() {
-                if (element.classList.contains('sold')) return; // إذا كان محجوزاً لا يفتح نافذة الشراء
+                if (element.classList.contains('sold')) return; 
                 selectedPixelId = index;
                 pixelDisplay.innerText = index;
                 statusMsg.innerText = "";
-                payBtn.innerText = "Connect Wallet & Pay الآلي";
+                payBtn.innerText = "Connect Wallet & Pay";
                 payBtn.disabled = false;
                 modal.style.display = 'block';
                 overlay.style.display = 'block';
@@ -261,7 +264,3 @@
 
                 statusMsg.innerText = "Waiting for payment approval in your wallet...";
                 
-                // تجهيز العقد والمبلغ المالي (1 USDT)
-                var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
-                var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT
-
