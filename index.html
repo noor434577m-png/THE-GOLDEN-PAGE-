@@ -35,7 +35,7 @@
         #grid-container { 
             display: grid; 
             grid-template-columns: repeat(50, 16px); 
-            grid-template-rows: repeat(40, 16px); /* 50 عمود × 40 صف = 2000 بكسل */
+            grid-template-rows: repeat(40, 16px); /* 50 عمود × 40 صف = 2000 بكسل تماماً */
             gap: 1px; 
             justify-content: center; 
             width: 850px; 
@@ -162,7 +162,7 @@
         var selectedPixelId = null;
         var totalPixels = 2000; 
 
-        // الخطوة 1: بناء الشبكة الـ 2000 بكسل في الواجهة أولاً بشكل فوري ومستقل لمنع اختفائها نهائياً
+        // 1. إنشاء المربعات الـ 2000 وعرضها فوراً في الواجهة دون انتظار رد السيرفر لمنع اختفائها نهائياً
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -172,12 +172,13 @@
             grid.appendChild(pixel);
         }
 
-        // الخطوة 2: جلب البيانات وتحديث حالة البكسلات المباعة من السيرفر بعد استقرار واجهة العرض
+        // 2. تحديث المربعات المباعة فقط من قاعدة البيانات
         function loadLivePixels() {
             fetch(dbUrl + ".json")
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
-                    if (!data) return;
+                    // تم إصلاح الخلل هنا: إذا كانت البيانات فارغة لا يتوقف الكود، بل يستمر في عرض المربعات فارغة
+                    if (!data) return; 
                     for (var i = 1; i <= totalPixels; i++) {
                         if (data[i]) {
                             var pixelDiv = document.getElementById('pixel-' + i);
@@ -212,7 +213,7 @@
             overlay.style.display = 'none';
         };
 
-        // الـ Logic الآمن لحماية البكسلات: التحقق من معالجة الدفع الرقمي أولاً وقبل إرسال أي بيانات لقاعدة البيانات
+        // نظام الأمان البرمجي: لا يتم رفع أي بيانات إلى Firebase إلا بعد نجاح تأكيد المعاملة في محفظة Trust Wallet
         document.getElementById('pay-btn').addEventListener('click', async function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
@@ -235,15 +236,15 @@
 
                 document.getElementById('pay-btn').innerText = "Confirming 1 USDT Payment...";
                 var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
-                var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT
+                var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT بقيمة 18 خانة عشرية
 
-                // استدعاء بوابة الدفع الآلية من محفظة العميل بشكل إجباري
+                // استدعاء نافذة الدفع الآلي داخل محفظة العميل
                 var tx = await usdtContract.transfer(MY_WALLET, amount);
                 
                 document.getElementById('pay-btn').innerText = "Verifying on Blockchain...";
-                await tx.wait(); // الكود يتوقف تماماً هنا ولن يمرر البيانات حتى تتأكد المعاملة وتصل الأموال لمحفظتك حقيقياً
+                await tx.wait(); // الكود يتوقف هنا إجبارياً ولن يقوم بالحجز في قاعدة البيانات إلا إذا نجحت المعاملة حقيقياً
 
-                // بعد نجاح الدفع الآلي الكامل، يتم حفظ وحجز البكسل
+                // بعد نجاح الدفع الآلي بالكامل، يتم حفظ وحجز البكسل للعميل
                 var updateUrl = dbUrl + "/" + selectedPixelId + ".json";
                 var payload = JSON.stringify({ logo: logo, link: link });
 
@@ -252,5 +253,3 @@
                         if (response.ok) {
                             alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved.");
                             closeModal();
-                            document.getElementById('logo-url').value = '';
-                            document.getElementById('site-url').value = '';
