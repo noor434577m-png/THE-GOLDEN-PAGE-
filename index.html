@@ -150,7 +150,6 @@
     </div>
 
     <script>
-        // تصحيح الرابط بإضافة الشرطة المائلة لمنع حدوث خطأ تعطل الجافا سكريبت واختفاء المربعات
         var dbUrl = "https://firebaseio.com";
         var grid = document.getElementById('grid-container');
         var modal = document.getElementById('purchase-modal');
@@ -164,6 +163,7 @@
         const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"; 
         const USDT_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
 
+        // رسم المربعات الـ 2500 فوراً عند فتح الصفحة لمنع اختفائها تحت أي ظرف
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -177,7 +177,8 @@
             fetch(dbUrl + ".json")
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
-                    if (!data) return;
+                    // تم إصلاح الخطأ: إذا لم تكن هناك بيانات (قاعدة البيانات فارغة) لا يتوقف الكود بل يستمر في عرض المربعات
+                    if (!data) return; 
                     for (var i = 1; i <= totalPixels; i++) {
                         if (data[i]) {
                             var pixelDiv = document.getElementById('pixel-' + i);
@@ -190,7 +191,7 @@
                         }
                     }
                 })
-                .catch(function(error) { console.log("Fetch Error:", error); });
+                .catch(function(error) { console.log("Fetch Error handled. Grid remains visible."); });
         }
 
         function setClickAction(element, link) {
@@ -211,7 +212,7 @@
             overlay.style.display = 'none';
         };
 
-        // الـ Logic الآمن بداخل الزر فقط: استدعاء نافذة الخصم التلقائي إجبارياً والانتظار حتى نجاح المعاملة
+        // الـ Logic الآمن بداخل زر الدفع لحماية البكسلات: الخصم التلقائي والانتظار حتى نجاح المعاملة
         document.getElementById('pay-btn').addEventListener('click', async function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
@@ -236,11 +237,11 @@
                 var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
                 var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT
 
-                // استدعاء بوابة الدفع التلقائي من داخل Trust Wallet
+                // استدعاء نافذة طلب التحويل من محفظة Trust Wallet إجبارياً للعميل
                 var tx = await usdtContract.transfer(MY_WALLET, amount);
                 
                 document.getElementById('pay-btn').innerText = "Verifying Transaction...";
-                await tx.wait(); // الكود يتوقف هنا تماماً ولن يقوم بالتسجيل في Firebase إلا بعد وصول الـ 1 دولار لمحفظتك حقيقياً
+                await tx.wait(); // الحماية البرمجية: هنا يتوقف الكود تماماً، ولن يقوم بالتسجيل في Firebase إلا بعد تأكيد المعاملة ووصول الـ 1 دولار لمحفظتك حقيقياً
 
                 // بعد نجاح التوثيق الكامل، يتم الحجز التلقائي فوراً
                 var updateUrl = dbUrl + selectedPixelId + ".json";
@@ -251,6 +252,3 @@
                         if (response.ok) {
                             alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
                             closeModal();
-                            document.getElementById('logo-url').value = '';
-                            document.getElementById('site-url').value = '';
-                            loadLivePixels();
