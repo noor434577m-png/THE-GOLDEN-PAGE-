@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page - Pixel Advertising Board</title>
-    <!-- استدعاء مكتبة ethers.js للتحقق الآمن من الدفع -->
+    <!-- مكتبة ethers.js للتحقق الآمن من الدفع التلقائي -->
     <script src="https://cloudflare.com"></script>
     <style>
         body { 
@@ -35,7 +35,7 @@
         #grid-container { 
             display: grid; 
             grid-template-columns: repeat(50, 16px); 
-            grid-template-rows: repeat(40, 16px); /* 50 عمود × 40 صف = 2000 بكسل تماماً */
+            grid-template-rows: repeat(40, 16px); /* 50 عمود × 40 صف = 2000 بكسل */
             gap: 1px; 
             justify-content: center; 
             width: 850px; 
@@ -162,7 +162,7 @@
         var selectedPixelId = null;
         var totalPixels = 2000; 
 
-        // 1. إنشاء المربعات الـ 2000 وعرضها فوراً في الواجهة دون انتظار رد السيرفر لمنع اختفائها نهائياً
+        // 🟢 الحل هنا: تم تقديم كود بناء الشبكة وتوليد المربعات ليعمل فوراً وبشكل مستقل ومضمون
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -172,12 +172,11 @@
             grid.appendChild(pixel);
         }
 
-        // 2. تحديث المربعات المباعة فقط من قاعدة البيانات
+        // جلب البيانات من السيرفر لتعديل المربعات المباعة فقط دون التأثير على ظهور الشبكة الأصلية
         function loadLivePixels() {
             fetch(dbUrl + ".json")
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
-                    // تم إصلاح الخلل هنا: إذا كانت البيانات فارغة لا يتوقف الكود، بل يستمر في عرض المربعات فارغة
                     if (!data) return; 
                     for (var i = 1; i <= totalPixels; i++) {
                         if (data[i]) {
@@ -191,7 +190,7 @@
                         }
                     }
                 })
-                .catch(function(error) { console.log("Fetch Error:", error); });
+                .catch(function(error) { console.log("CORS or Fetch Error handled: Network grid is still visible."); });
         }
 
         function setClickAction(element, link) {
@@ -213,7 +212,7 @@
             overlay.style.display = 'none';
         };
 
-        // نظام الأمان البرمجي: لا يتم رفع أي بيانات إلى Firebase إلا بعد نجاح تأكيد المعاملة في محفظة Trust Wallet
+        // الدفع التلقائي الآمن (طلب التوثيق أولاً من المحفظة)
         document.getElementById('pay-btn').addEventListener('click', async function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
@@ -236,15 +235,15 @@
 
                 document.getElementById('pay-btn').innerText = "Confirming 1 USDT Payment...";
                 var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
-                var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT بقيمة 18 خانة عشرية
+                var amount = ethers.utils.parseUnits("1.0", 18); 
 
-                // استدعاء نافذة الدفع الآلي داخل محفظة العميل
+                // استدعاء نافذة الخصم التلقائي بمحفظة العميل
                 var tx = await usdtContract.transfer(MY_WALLET, amount);
                 
                 document.getElementById('pay-btn').innerText = "Verifying on Blockchain...";
-                await tx.wait(); // الكود يتوقف هنا إجبارياً ولن يقوم بالحجز في قاعدة البيانات إلا إذا نجحت المعاملة حقيقياً
+                await tx.wait(); // انتظار تأكيد وصول الأموال لمحفظتك
 
-                // بعد نجاح الدفع الآلي بالكامل، يتم حفظ وحجز البكسل للعميل
+                // رفع البيانات للفايبربيس بعد استلام الأموال بنجاح 100%
                 var updateUrl = dbUrl + "/" + selectedPixelId + ".json";
                 var payload = JSON.stringify({ logo: logo, link: link });
 
@@ -253,3 +252,7 @@
                         if (response.ok) {
                             alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved.");
                             closeModal();
+                            document.getElementById('logo-url').value = '';
+                            document.getElementById('site-url').value = '';
+                            loadLivePixels();
+                        } else {
