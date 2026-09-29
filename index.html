@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page - Pixel Advertising Board</title>
-    <!-- مكتبة ethers.js للتحقق الآمن من الدفع التلقائي -->
+    <!-- تضمين مكتبات Firebase الرسمية لحل مشكلة اختفاء المربعات نهائياً -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <!-- مكتبة ethers.js للاتصال بمحفظة الدفع الذكية -->
     <script src="https://cloudflare.com"></script>
     <style>
         body { 
@@ -35,7 +38,7 @@
         #grid-container { 
             display: grid; 
             grid-template-columns: repeat(50, 16px); 
-            grid-template-rows: repeat(40, 16px); /* 50 عمود × 40 صف = 2000 بكسل */
+            grid-template-rows: repeat(40, 16px); /* 50 عمود × 40 صف = 2000 بكسل تماماً */
             gap: 1px; 
             justify-content: center; 
             width: 850px; 
@@ -150,7 +153,20 @@
     </div>
 
     <script>
-        var dbUrl = "https://firebaseio.com";
+        // تهيئة اتصال Firebase بشكل رسمي ومستقر يمنع حظر الحماية تماماً
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
+            authDomain: "://firebaseapp.com",
+            databaseURL: "https://firebaseio.com",
+            projectId: "the-golden-page",
+            storageBucket: "the-golden-page.firebasestorage.app",
+            messagingSenderId: "486401864679",
+            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // إعدادات محفظة وعقد الدفع USDT الذكي لشبكة BSC
         const MY_WALLET = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"; 
         const USDT_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
@@ -162,7 +178,7 @@
         var selectedPixelId = null;
         var totalPixels = 2000; 
 
-        // 🟢 الحل هنا: تم تقديم كود بناء الشبكة وتوليد المربعات ليعمل فوراً وبشكل مستقل ومضمون
+        // توليد المربعات الـ 2000 الخاصة بك فوراً وبشكل مستقل تماماً
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -172,25 +188,23 @@
             grid.appendChild(pixel);
         }
 
-        // جلب البيانات من السيرفر لتعديل المربعات المباعة فقط دون التأثير على ظهور الشبكة الأصلية
+        // جلب البيانات الحية باستخدام حزمة الـ SDK لضمان بقاء المربعات ظاهرة
         function loadLivePixels() {
-            fetch(dbUrl + ".json")
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    if (!data) return; 
-                    for (var i = 1; i <= totalPixels; i++) {
-                        if (data[i]) {
-                            var pixelDiv = document.getElementById('pixel-' + i);
-                            if (pixelDiv) {
-                                pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
-                                pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
-                                pixelDiv.style.backgroundColor = '#fff';
-                                setClickAction(pixelDiv, data[i].link);
-                            }
+            database.ref('pixels').once('value').then(function(snapshot) {
+                var data = snapshot.val();
+                if (!data) return;
+                for (var i = 1; i <= totalPixels; i++) {
+                    if (data[i]) {
+                        var pixelDiv = document.getElementById('pixel-' + i);
+                        if (pixelDiv) {
+                            pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
+                            pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
+                            pixelDiv.style.backgroundColor = '#fff';
+                            setClickAction(pixelDiv, data[i].link);
                         }
                     }
-                })
-                .catch(function(error) { console.log("CORS or Fetch Error handled: Network grid is still visible."); });
+                }
+            }).catch(function(error) { console.log("Firebase Load Error:", error); });
         }
 
         function setClickAction(element, link) {
@@ -212,7 +226,7 @@
             overlay.style.display = 'none';
         };
 
-        // الدفع التلقائي الآمن (طلب التوثيق أولاً من المحفظة)
+        // زر الشراء الآمن والآلي: يخصم من محفظة العميل أولاً، وإذا تمت العملية بنجاح يحجز البكسل
         document.getElementById('pay-btn').addEventListener('click', async function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
@@ -235,24 +249,11 @@
 
                 document.getElementById('pay-btn').innerText = "Confirming 1 USDT Payment...";
                 var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
-                var amount = ethers.utils.parseUnits("1.0", 18); 
+                var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT
 
-                // استدعاء نافذة الخصم التلقائي بمحفظة العميل
+                // فتح نافذة الدفع الإجبارية للعميل
                 var tx = await usdtContract.transfer(MY_WALLET, amount);
                 
                 document.getElementById('pay-btn').innerText = "Verifying on Blockchain...";
-                await tx.wait(); // انتظار تأكيد وصول الأموال لمحفظتك
+                await tx.wait(); // الكود يتوقف هنا تماماً ولن يقوم بالتحديث إلا إذا وصلت الأموال لمحفظتك
 
-                // رفع البيانات للفايبربيس بعد استلام الأموال بنجاح 100%
-                var updateUrl = dbUrl + "/" + selectedPixelId + ".json";
-                var payload = JSON.stringify({ logo: logo, link: link });
-
-                fetch(updateUrl, { method: "PUT", body: payload })
-                    .then(function(response) {
-                        if (response.ok) {
-                            alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved.");
-                            closeModal();
-                            document.getElementById('logo-url').value = '';
-                            document.getElementById('site-url').value = '';
-                            loadLivePixels();
-                        } else {
