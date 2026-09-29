@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page</title>
     
+    <!-- مكتبة البلوكشين الرسمية والمؤمنة ضد الحظر -->
+    <script src="https://jsdelivr.net"></script>
+    
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; margin: 0; }
         .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         h1 { color: #d4af37; margin: 0 0 10px 0; }
         
@@ -20,36 +23,26 @@
             display: inline-block;
         }
         
-        /* مصفوفة شبكية مادية حقيقية وملموسة من 2500 مربع (50 عمود × 50 صف) */
+        /* شبكة ثابتة ومستقرة ومقاومة للاختفاء بنسبة 100% */
         #pixel-board { 
-            display: grid;
-            grid-template-columns: repeat(50, 15px); 
-            grid-template-rows: repeat(50, 15px);    
+            position: relative;
             width: 750px; 
             height: 750px; 
             background-color: #ffffff; 
+            background-image: linear-gradient(to right, #ccc 1px, transparent 1px), linear-gradient(to bottom, #ccc 1px, transparent 1px);
+            background-size: 15px 15px; /* تقسيم صلب لـ 2500 مربع */
+            cursor: crosshair;
         }
         
-        /* تصميم المربعات المادية القابلة للنقر الفوري */
-        .grid-square {
+        /* تصميم البكسل عند النشر فوق الشبكة */
+        .user-pixel {
+            position: absolute;
             width: 15px;
             height: 15px;
-            border: 1px solid #e0e0e0; 
             box-sizing: border-box;
-            cursor: pointer;
-            background-color: #ffffff;
+            z-index: 10;
         }
-        .grid-square:hover {
-            background-color: #ffeaa7; 
-        }
-        
-        /* تصميم البكسل عند النشر داخل الخلية */
-        .grid-square img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            display: block;
-        }
+        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         .modal {
             display: none; 
@@ -78,6 +71,7 @@
     </div>
 
     <div class="board-container">
+        <!-- اللوحة الشبكية الصلبة المباشرة -->
         <div id="pixel-board"></div>
     </div>
 
@@ -88,7 +82,7 @@
             
             <div class="guide-text">
                 <strong>💡 إرشادات الدفع للجوال / Mobile Guide:</strong><br>
-                • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك بالأسفل لفتح الموقع تلقائياً وتأكيد التحويل من داخل التطبيق المحمي.<br>
+                • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك بالأسفل وسيتم تحويلك تلقائياً لتأكيد التحويل من داخل التطبيق الآمن.<br>
                 • On mobile Safari/Chrome, click your wallet below to open and purchase directly inside the app.
             </div>
 
@@ -103,14 +97,12 @@
         </div>
     </div>
 
-    <!-- استدعاء مكتبة Ethers.js الرسمية للبلوكشين -->
-    <script src="https://cloudflare.com"></script>
-
     <script>
         // إعدادات محفظتك وقاعدة بيانات الفايربيس الثابتة والمؤمنة
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
-        
+        const PIXEL_SIZE = 15;
+
         const pixelBoard = document.getElementById('pixel-board');
         const paymentModal = document.getElementById('payment-modal');
         const btnMetaMask = document.getElementById('btn-metamask');
@@ -122,36 +114,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // إصلاح جوهري: رسم المربعات فوراً كأولوية قصوى لتجنب مشاكل تعطل الأكواد اللاحقة
-        function buildGridLayout() {
-            pixelBoard.innerHTML = ''; 
-            for (let row = 0; row < 50; row++) {
-                for (let col = 0; col < 50; col++) {
-                    const xCoord = col * 15;
-                    const yCoord = row * 15;
-                    const cellId = `sq_${xCoord}_${yCoord}`;
-
-                    const square = document.createElement('div');
-                    square.className = 'grid-square';
-                    square.id = cellId;
-
-                    square.onclick = function() {
-                        if (takenPixels[`${xCoord}_${yCoord}`]) return; 
-                        currentX = xCoord;
-                        currentY = yCoord;
-                        coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
-                        paymentModal.style.display = 'flex';
-                    };
-
-                    pixelBoard.appendChild(square);
-                }
-            }
-        }
-
-        // تشغيل البناء الفوري المستقل للواجهة أولاً
-        buildGridLayout();
-
-        // جلب البيانات من Firebase وتحديث المربعات المشغولة في الخلفية بشكل منفصل وآمن
+        // 1. جلب البيانات من Firebase وتحديث المربعات المشغولة بالصور والروابط تلقائياً
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -159,21 +122,49 @@
                 if (!data) return;
                 takenPixels = data; 
                 
+                // مسح الصور القديمة قبل إعادة الرسم لمنع التكرار
+                const oldPixels = pixelBoard.querySelectorAll('.user-pixel');
+                oldPixels.forEach(el => el.remove());
+
                 Object.keys(data).forEach(key => {
                     const p = data[key];
                     const [x, y] = key.split('_');
-                    const sq = document.getElementById(`sq_${x}_${y}`);
                     
-                    if (sq) {
-                        sq.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
-                        sq.style.cursor = 'default';
-                        sq.onclick = null; // قفل المربع نهائياً بعد الشراء ومنع تعديله
-                    }
+                    const pixelDiv = document.createElement('div');
+                    pixelDiv.className = 'user-pixel';
+                    pixelDiv.style.left = `${x}px`;
+                    pixelDiv.style.top = `${y}px`;
+
+                    pixelDiv.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
+                    pixelBoard.appendChild(pixelDiv);
                 });
-            }).catch(err => console.log("Database fetch deferred:", err));
+            }).catch(err => console.log(err));
         }
 
+        // تشغيل مباشر ومستقل لجلب البيانات
         loadPixelsFromFirebase();
+
+        // 2. احتساب النقر رياضيّاً ومباشرةً على اللوحة دون الحاجة لتوليد مربعات برمجية معقدة
+        pixelBoard.onclick = function(e) {
+            // إذا ضغط على صورة منشورة مسبقاً، يفتح رابط العميل الأصلي ولا يفتح نافذة الشراء
+            if (e.target !== pixelBoard) return;
+
+            const rect = pixelBoard.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
+            currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
+
+            // شرط منع تعديل أو حجز المربع المباع مسبقاً نهائياً
+            if (takenPixels[`${currentX}_${currentY}`]) {
+                alert("This square is already taken and cannot be modified!");
+                return;
+            }
+
+            coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
+            paymentModal.style.display = 'flex';
+        };
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
@@ -194,7 +185,7 @@
             return false; 
         }
 
-        // معالجة الدفع وضمان عدم النشر أو التعديل إلا بعد تأكيد الحوالة بنجاح 100%
+        // 3. معالجة الدفع وضمان عدم النشر أو التعديل إلا بعد تأكيد الحوالة بنجاح
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -208,7 +199,7 @@
             if (handleMobileRedirect(targetWallet)) return; 
 
             if (typeof window.ethereum === 'undefined' || typeof ethers === 'undefined') {
-                alert('Web3 extension missing or still loading. Please open directly inside your wallet app browser.');
+                alert('Web3 wallet injection is loading. If on mobile, please make sure the app browser opened correctly.');
                 return;
             }
 
@@ -220,4 +211,5 @@
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
 
+                // إرسال الـ 1 POL لمحفظتك المحددة بدقة
                 const tx = { to: MY_WALLET_ADDRESS, value: ethers.utils.parseEther("1.0") };
