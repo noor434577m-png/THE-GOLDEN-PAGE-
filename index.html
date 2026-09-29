@@ -1,204 +1,237 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Golden Page</title>
+    <title>The Golden Page - Pixel Advertising Board</title>
     <style>
-        body { font-family: sans-serif; background-color: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
-        h1 { color: #ffd700; }
-        #grid-container { display: grid; grid-template-columns: repeat(50, 15px); grid-gap: 2px; justify-content: center; margin: 20px auto; max-width: 900px; }
-        
-        /* تصميم البكسل */
-        .pixel { width: 15px; height: 15px; background-color: #333; border: 1px solid #444; cursor: pointer; position: relative; background-size: cover; background-position: center; }
-        .pixel.sold { cursor: pointer; border: 1px solid #ffd700; }
-        .pixel.selected { background-color: #00ff00 !important; }
-        
-        /* مربع المعلومات عند تمرير الماوس */
-        .tooltip { display: none; position: absolute; bottom: 20px; right: 50%; transform: translateX(50%); background: rgba(0,0,0,0.95); color: #fff; padding: 10px; border: 1px solid #ffd700; border-radius: 5px; width: 150px; z-index: 10; text-align: center; pointer-events: none; }
-        .pixel:hover .tooltip { display: block; }
-        .tooltip img { width: 100%; height: auto; border-radius: 3px; margin-bottom: 5px; }
-        .tooltip a { color: #ffd700; text-decoration: none; font-size: 12px; word-break: break-all; display: block; }
-
-        #controls { margin: 20px; }
-        .input-group { margin: 10px 0; display: none; }
-        .input-group input { padding: 8px; width: 250px; border-radius: 5px; border: 1px solid #ffd700; background: #222; color: #fff; text-align: center; margin: 5px 0; }
-        button { background-color: #ffd700; border: none; color: #111; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 5px; margin: 5px; unsigned-shadow: none;}
-        button:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
-        #status-text { color: #ffd700; font-weight: bold; margin-top: 10px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; 
+            background: #fbfbfd; 
+            margin: 0; 
+            padding: 20px; 
+            color: #333;
+        }
+        h1 { 
+            color: #d4af37; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
+        }
+        .subtitle { 
+            color: #666; 
+            font-size: 15px; 
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+        #grid-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin: 20px auto;
+            padding: 10px 0;
+        }
+        #grid-container { 
+            display: grid; 
+            grid-template-columns: repeat(50, 16px); 
+            grid-template-rows: repeat(50, 16px); 
+            gap: 1px; 
+            justify-content: center; 
+            width: 850px; 
+            margin: 0 auto;
+            background: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .pixel { 
+            width: 16px; 
+            height: 16px; 
+            background-color: #f7f4eb; 
+            border: 1px solid #e5dfcf; 
+            cursor: pointer; 
+            box-sizing: border-box;
+            background-size: cover; 
+            background-position: center;
+        }
+        .pixel:hover { 
+            background-color: #d4af37; 
+        }
+        #purchase-modal { 
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: white; 
+            padding: 25px; 
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.15); 
+            border-radius: 12px; 
+            z-index: 100; 
+            width: 85%; 
+            max-width: 320px; 
+        }
+        #purchase-modal h3 { margin-top: 0; color: #333; }
+        .crypto-box {
+            background: #f8f9fa;
+            border: 1px dashed #d4af37;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        input { 
+            width: 92%; 
+            padding: 10px; 
+            margin: 8px 0; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            font-size: 14px;
+        }
+        .btn-pay { 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            padding: 12px 15px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            width: 100%; 
+            font-size: 16px; 
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .btn-pay:hover { background: #218838; }
+        .close-btn { 
+            background: #dc3545; 
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            width: 100%;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+        .close-btn:hover { background: #c82333; }
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 90;
+        }
     </style>
-    <!-- تضمين حزم Firebase الـ CDN المتوافقة والمستقرة -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-    <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
-    <h1>The Golden Page ✨</h1>
-    <p>اشترِ بكسلاتك الخاصة بـ 1 دولار (USDT) للبكسل الواحد واعرض إعلانك للجميع!</p>
-    
-    <div id="controls">
-        <button id="connect-wallet">ربط المحفظة (Trust Wallet)</button>
-        
-        <div id="buyer-inputs" class="input-group">
-            <input type="url" id="link-url" placeholder="رابط موقعك الإلكتروني (https://...)"><br>
-            <input type="url" id="image-url" placeholder="رابط الصورة الشخصية أو الشعار (https://...)">
-        </div>
+    <h1>✨ The Golden Page ✨</h1>
+    <p class="subtitle">Own a permanent advertising pixel space for just \$1 per pixel!</p>
 
-        <button id="buy-btn" disabled>اشترِ البكسل المحدد (1 USDT)</button>
-        <p id="status-text"></p>
+    <div id="grid-wrapper">
+        <div id="grid-container"></div>
     </div>
 
-    <!-- شبكة الـ 2000 بكسل تظهر هنا -->
-    <div id="grid-container"></div>
+    <div id="modal-overlay" onclick="closeModal()"></div>
+    <div id="purchase-modal">
+        <h3>Book Your Pixel</h3>
+        <p style="font-size: 13px; color: #555; margin-bottom: 5px;">Selected Block: <span id="pixel-number-display" style="font-weight:bold; color:#d4af37;">0</span></p>
+        
+        <div class="crypto-box">
+            <strong>Send 1 USDT (TRC20) to:</strong><br>
+            <span id="wallet-address" style="color: #28a745; font-weight: bold;">TNKe6iYtfTXmGqSQMp9vZVrcdfGFzHkPLQ</span>
+        </div>
+
+        <input type="url" id="logo-url" placeholder="Your Logo Image URL (e.g., https://site.com)">
+        <input type="url" id="site-url" placeholder="Your Website Destination URL">
+        
+        <button class="btn-pay" id="pay-btn">I Have Paid & Publish</button>
+        <button class="close-btn" onclick="closeModal()">Cancel</button>
+    </div>
 
     <script>
-        // --- 1. إعدادات قاعدة بيانات Firebase الموثقة الخاصة بك ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
-            authDomain: "://firebaseapp.com",
-            databaseURL: "https://firebaseio.com",
-            projectId: "the-golden-page",
-            storageBucket: "the-golden-page.firebasestorage.app",
-            messagingSenderId: "486401864679",
-            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
+        var dbUrl = "https://firebaseio.com";
+        var grid = document.getElementById('grid-container');
+        var modal = document.getElementById('purchase-modal');
+        var overlay = document.getElementById('modal-overlay');
+        var pixelDisplay = document.getElementById('pixel-number-display');
+        var selectedPixelId = null;
+        var totalPixels = 2500;
+
+        for (var i = 1; i <= totalPixels; i++) {
+            var pixel = document.createElement('div');
+            pixel.className = 'pixel';
+            pixel.id = 'pixel-' + i;
+            pixel.title = 'Block #' + i + ' - Available for $1';
+            setOpenModalAction(pixel, i);
+            grid.appendChild(pixel);
+        }
+
+        function loadLivePixels() {
+            fetch(dbUrl)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (!data) return;
+                    for (var i = 1; i <= totalPixels; i++) {
+                        if (data[i]) {
+                            var pixelDiv = document.getElementById('pixel-' + i);
+                            if (pixelDiv) {
+                                pixelDiv.style.backgroundImage = "url('" + data[i].logo + "')";
+                                pixelDiv.title = 'Ad #' + i + ' - Click to visit website';
+                                pixelDiv.style.backgroundColor = '#fff';
+                                setClickAction(pixelDiv, data[i].link);
+                            }
+                        }
+                    }
+                })
+                .catch(function(error) { console.log("Fetch Error:", error); });
+        }
+
+        function setClickAction(element, link) {
+            element.onclick = function() { window.open(link, '_blank'); };
+        }
+
+        function setOpenModalAction(element, index) {
+            element.onclick = function() {
+                selectedPixelId = index;
+                pixelDisplay.innerText = index;
+                modal.style.display = 'block';
+                overlay.style.display = 'block';
+            };
+        }
+
+        window.closeModal = function() {
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
         };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
 
-        // --- 2. إعدادات الدفع الآلي (شبكة BSC) ---
-        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
-        const USDT_CONTRACT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955"; 
-        const USDT_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
+        document.getElementById('pay-btn').addEventListener('click', function() {
+            var logo = document.getElementById('logo-url').value.trim();
+            var link = document.getElementById('site-url').value.trim();
 
-        let userWalletAddress = null;
-        let selectedPixelId = null;
-        let provider, signer;
+            if (logo && link) {
+                var updateUrl = "https://firebaseio.com" + selectedPixelId + ".json";
+                var payload = JSON.stringify({ logo: logo, link: link });
 
-        // توليد الـ 2000 مربع برمجياً فور تحميل الصفحة
-        const gridContainer = document.getElementById('grid-container');
-        const totalPixels = 2000;
-
-        for (let i = 1; i <= totalPixels; i++) {
-            const pixel = document.createElement('div');
-            pixel.classList.add('pixel');
-            pixel.setAttribute('data-id', i);
-            
-            const tooltip = document.createElement('div');
-            tooltip.classList.add('tooltip');
-            pixel.appendChild(tooltip);
-
-            pixel.addEventListener('click', function() {
-                selectPixel(i);
-            });
-            gridContainer.appendChild(pixel);
-        }
-
-        // مراقبة قاعدة البيانات وتحديث المربعات المحجوزة حياً
-        database.ref('pixels').on('value', function(snapshot) {
-            const data = snapshot.val() || {};
-            const allPixels = document.querySelectorAll('.pixel');
-            
-            allPixels.forEach(function(pixel) {
-                const id = pixel.getAttribute('data-id');
-                const tooltip = pixel.querySelector('.tooltip');
-                
-                if (data[id] && data[id].sold) {
-                    pixel.classList.add('sold');
-                    if (data[id].img) {
-                        pixel.style.backgroundImage = "url('" + data[id].img + "')";
-                    }
-                    
-                    // توليد المحتوى بطريقة دمج صلبة خالية من الأخطاء التنسيقية
-                    let htmlContent = "";
-                    if (data[id].img) {
-                        htmlContent += "<img src='" + data[id].img + "' alt='Ad'>";
-                    }
-                    if (data[id].url) {
-                        htmlContent += "<a href='" + data[id].url + "' target='_blank'>زيارة الموقع 🔗</a>";
-                    } else {
-                        htmlContent += "<span>تم الشراء</span>";
-                    }
-                    tooltip.innerHTML = htmlContent;
-                    
-                    pixel.onclick = function() {
-                        if (data[id].url) window.open(data[id].url, '_blank');
-                    };
-                }
-            });
-        });
-
-        // تحديد المربع المراد شراؤه
-        function selectPixel(id) {
-            const pixelDiv = document.querySelector(".pixel[data-id='" + id + "']");
-            if (pixelDiv.classList.contains('sold')) return;
-
-            document.querySelectorAll('.pixel').forEach(function(p) {
-                p.classList.remove('selected');
-            });
-            pixelDiv.classList.add('selected');
-            selectedPixelId = id;
-            
-            if (userWalletAddress) {
-                document.getElementById('buy-btn').disabled = false;
-            }
-        }
-
-        // حدث ربط المحفظة الرقمية
-        document.getElementById('connect-wallet').addEventListener('click', async function() {
-            if (window.ethereum) {
-                try {
-                    provider = new ethers.providers.Web3Provider(window.ethereum);
-                    await provider.send("eth_requestAccounts", []);
-                    signer = provider.getSigner();
-                    userWalletAddress = await signer.getAddress();
-                    
-                    document.getElementById('connect-wallet').innerText = "متصل: " + userWalletAddress.substring(0, 6) + "...";
-                    document.getElementById('buyer-inputs').style.display = "block";
-                    document.getElementById('status-text').innerText = "تم ربط المحفظة بنجاح! اختر بكسل غير محجوز الآن.";
-                    
-                    if (selectedPixelId) {
-                        document.getElementById('buy-btn').disabled = false;
-                    }
-                } catch (error) {
-                    document.getElementById('status-text').innerText = "فشل ربط المحفظة، يرجى المحاولة مجدداً.";
-                }
+                fetch(updateUrl, { method: "PUT", body: payload })
+                    .then(function(response) {
+                        if (response.ok) {
+                            alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
+                            closeModal();
+                            document.getElementById('logo-url').value = '';
+                            document.getElementById('site-url').value = '';
+                            loadLivePixels();
+                        } else {
+                            alert("Server error, please check Firebase Rules setup.");
+                        }
+                    })
+                    .catch(function(error) {
+                        alert("Save Error: " + error.message);
+                    });
             } else {
-                alert("يرجى التأكد من فتح موقعك الآن عبر متصفح الداب (DApp Browser) المدمج بداخل تطبيق Trust Wallet على الجوال.");
+                alert("Please fill in both the Image URL and Website URL fields.");
             }
         });
 
-        // معالجة الخصم الآلي وحفظ التوثيق
-        document.getElementById('buy-btn').addEventListener('click', async function() {
-            if (!selectedPixelId || !signer) return;
-            
-            const linkUrl = document.getElementById('link-url').value;
-            const imageUrl = document.getElementById('image-url').value;
-
-            document.getElementById('status-text').innerText = "يرجى تأكيد إرسال الدفع من محفظتك...";
-            
-            try {
-                const usdtContract = new ethers.Contract(USDT_CONTRACT_ADDRESS, USDT_ABI, signer);
-                const amountToSend = ethers.utils.parseUnits("1.0", 18); 
-
-                const tx = await usdtContract.transfer(MY_WALLET_ADDRESS, amountToSend);
-                document.getElementById('status-text').innerText = "جاري تأكيد التوثيق على البلوكشين حالياً...";
-                
-                await tx.wait(); 
-
-                await database.ref('pixels/' + selectedPixelId).set({
-                    sold: true,
-                    buyer: userWalletAddress,
-                    url: linkUrl || "",
-                    img: imageUrl || "",
-                    timestamp: Date.now()
-                });
-
-                document.getElementById('status-text').innerText = "مبروك! تم الشراء ورفع إعلانك فوراً.";
-                document.getElementById('buy-btn').disabled = true;
-                document.querySelector(".pixel[data-id='" + selectedPixelId + "']").classList.remove('selected');
-
-            } catch (error) {
-                console.error(error);
-                document.getElementById('status-text').innerText = "تم إلغاء المعاملة أو تعذر تأكيد الدفع.";
-            }
+        loadLivePixels();
+    </script>
+</body>
+</html>
