@@ -5,15 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page</title>
     
-    <!-- مكتبة البلوكشين الرسمية والمعتمدة -->
-    <script src="https://cloudflare.com"></script>
-    
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; margin: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; margin: 0; }
         .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         h1 { color: #d4af37; margin: 0 0 10px 0; }
         
-        /* حاوية مرنة تضمن التصفح واللمس على جميع الأجهزة دون حظر */
         .board-container { 
             margin: 20px auto; 
             overflow: auto; 
@@ -24,7 +20,7 @@
             display: inline-block;
         }
         
-        /* شبكة حقيقية وملموسة من 2500 مربع (50 عمود × 50 صف) */
+        /* مصفوفة شبكية مادية حقيقية وملموسة من 2500 مربع (50 عمود × 50 صف) */
         #pixel-board { 
             display: grid;
             grid-template-columns: repeat(50, 15px); 
@@ -34,7 +30,7 @@
             background-color: #ffffff; 
         }
         
-        /* تصميم المربع الفارغ الجاهز للنقر فوراً */
+        /* تصميم المربعات المادية القابلة للنقر الفوري */
         .grid-square {
             width: 15px;
             height: 15px;
@@ -47,7 +43,7 @@
             background-color: #ffeaa7; 
         }
         
-        /* تصميم البكسل المباع والمحمي من التعديل */
+        /* تصميم البكسل عند النشر داخل الخلية */
         .grid-square img { 
             width: 100%; 
             height: 100%; 
@@ -55,7 +51,6 @@
             display: block;
         }
 
-        /* النافذة المنبثقة الذكية للدفع والنشر */
         .modal {
             display: none; 
             position: fixed; 
@@ -93,7 +88,7 @@
             
             <div class="guide-text">
                 <strong>💡 إرشادات الدفع للجوال / Mobile Guide:</strong><br>
-                • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك بالأسفل لفتح الموقع تلقائياً وتأكيد التحويل من داخل التطبيق الآمن.<br>
+                • إذا كنت تتصفح من متصفح عادي (سفاري/كروم)، اضغط على محفظتك بالأسفل لفتح الموقع تلقائياً وتأكيد التحويل من داخل التطبيق المحمي.<br>
                 • On mobile Safari/Chrome, click your wallet below to open and purchase directly inside the app.
             </div>
 
@@ -108,8 +103,11 @@
         </div>
     </div>
 
+    <!-- استدعاء مكتبة Ethers.js الرسمية للبلوكشين -->
+    <script src="https://cloudflare.com"></script>
+
     <script>
-        // إعدادات محفظتك وقاعدة بيانات الفايربيس الحقيقية الثابتة والمؤمنة
+        // إعدادات محفظتك وقاعدة بيانات الفايربيس الثابتة والمؤمنة
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
         
@@ -124,7 +122,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. بناء الـ 2500 مربع مادياً فوراً لضمان الظهور الفوري وقابلية النقر 100%
+        // إصلاح جوهري: رسم المربعات فوراً كأولوية قصوى لتجنب مشاكل تعطل الأكواد اللاحقة
         function buildGridLayout() {
             pixelBoard.innerHTML = ''; 
             for (let row = 0; row < 50; row++) {
@@ -137,9 +135,8 @@
                     square.className = 'grid-square';
                     square.id = cellId;
 
-                    // تفعيل النقر المباشر لكل مربع فارغ
                     square.onclick = function() {
-                        if (takenPixels[`${xCoord}_${yCoord}`]) return; // قفل المربع ومنع حجز المباع مسبقاً
+                        if (takenPixels[`${xCoord}_${yCoord}`]) return; 
                         currentX = xCoord;
                         currentY = yCoord;
                         coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
@@ -151,7 +148,10 @@
             }
         }
 
-        // 2. جلب البيانات من Firebase وتحديث المربعات المشغولة بالصور والروابط في الخلفية
+        // تشغيل البناء الفوري المستقل للواجهة أولاً
+        buildGridLayout();
+
+        // جلب البيانات من Firebase وتحديث المربعات المشغولة في الخلفية بشكل منفصل وآمن
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -164,18 +164,15 @@
                     const [x, y] = key.split('_');
                     const sq = document.getElementById(`sq_${x}_${y}`);
                     
-                    // قفل المربع نهائياً بعد الشراء ومنع تعديله أو فتحه مجدداً
                     if (sq) {
                         sq.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
                         sq.style.cursor = 'default';
-                        sq.onclick = null; // إزالة إمكانية النقر والفتح نهائياً
+                        sq.onclick = null; // قفل المربع نهائياً بعد الشراء ومنع تعديله
                     }
                 });
-            }).catch(err => console.log(err));
+            }).catch(err => console.log("Database fetch deferred:", err));
         }
 
-        // تشغيل البناء الفوري المستقل
-        buildGridLayout();
         loadPixelsFromFirebase();
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
@@ -197,7 +194,7 @@
             return false; 
         }
 
-        // 3. معالجة الدفع وضمان عدم النشر أو التعديل إلا بعد تأكيد الحوالة بنجاح
+        // معالجة الدفع وضمان عدم النشر أو التعديل إلا بعد تأكيد الحوالة بنجاح 100%
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -210,8 +207,8 @@
             const targetWallet = walletButton.id === 'btn-metamask' ? 'metamask' : 'trust';
             if (handleMobileRedirect(targetWallet)) return; 
 
-            if (typeof window.ethereum === 'undefined') {
-                alert('No crypto wallet extension found. If you are on mobile, please make sure the wallet app opened correctly.');
+            if (typeof window.ethereum === 'undefined' || typeof ethers === 'undefined') {
+                alert('Web3 extension missing or still loading. Please open directly inside your wallet app browser.');
                 return;
             }
 
@@ -223,3 +220,4 @@
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
 
+                const tx = { to: MY_WALLET_ADDRESS, value: ethers.utils.parseEther("1.0") };
