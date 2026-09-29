@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Golden Page</title>
     
     <style>
@@ -18,6 +18,7 @@
             border-radius: 8px;
             background-color: #fff;
             display: inline-block;
+            position: relative;
         }
         
         #pixel-board { 
@@ -28,7 +29,8 @@
             background-image: linear-gradient(to right, #ccc 1px, transparent 1px), linear-gradient(to bottom, #ccc 1px, transparent 1px);
             background-size: 15px 15px; 
             cursor: crosshair;
-            touch-action: auto; 
+            /* منع المتصفح من عمل زووم بالخطأ أثناء اللمس */
+            touch-action: none; 
         }
         
         .user-pixel {
@@ -36,11 +38,10 @@
             width: 15px;
             height: 15px;
             box-sizing: border-box;
-            z-index: 10;
+            z-index: 999; /* رفع الطبقة لأعلى شيء لتصبح قابلة للضغط فوراً */
         }
-        /* تعديل CSS لضمان عمل الرابط والصورة بكامل حجم البيكسل وقابليتها للضغط */
-        .user-pixel a { display: block; width: 100%; height: 100%; text-decoration: none; }
-        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: auto; }
+        .user-pixel a { display: block; width: 100%; height: 100%; }
+        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         .modal {
             display: none; 
@@ -56,11 +57,9 @@
         .wallet-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
         .btn-pay { color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; width: 95%; font-weight: bold; margin: auto; }
         .btn-mm { background-color: #f6851b; } 
-        .btn-tw { background-color: #3375bb; } 
         .btn-close { background-color: #f44336; margin-top: 5px; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
     </style>
-    <!-- تضمين مكتبة ethers.js للتعامل مع محافظ التشفير والدفع تلقائياً -->
     <script src="https://cloudflare.com"></script>
 </head>
 <body>
@@ -80,25 +79,24 @@
             <p>Selected Position: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
             
             <div class="guide-text">
-                <strong>💡 إرشادات الدفع للجوال / Mobile Guide:</strong><br>
-                • يفضل فتح الموقع من داخل متصفح محفظة (MetaMask/Trust) لضمان الدفع التلقائي بضغطة زر وبدون مشاكل.<br>
-                • For best experience, open this site inside MetaMask or Trust Wallet in-app browser.
+                <strong>💡 إرشادات الدفع للجوال:</strong><br>
+                قم بفتح الموقع من متصفح محفظة MetaMask أو Trust Wallet ليعمل الدفع التلقائي بنجاح.
             </div>
 
             <input type="text" id="pixel-link" placeholder="Your Website URL (https://...)">
             <input type="text" id="pixel-image" placeholder="Direct Image URL (.png/.jpg)">
             
             <div class="wallet-options">
-                <button id="btn-pay-now" class="btn-pay btn-mm">Pay with Web3 Wallet (1 POL)</button>
+                <button id="btn-pay-now" class="btn-pay btn-mm">Pay & Launch (1 POL)</button>
                 <button id="close-btn" class="btn-pay btn-close">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        // تنبيه: استبدل رابط Firebase برابط مشروعك الفعلي المنتهي بـ .firebaseio.com
+        // تنبيه هام جداً: تأكد من تغيير هذا الرابط برابط الفايربيس الخاص بك
+        const FIREBASE_URL = "https://firebaseio.com"; 
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
-        const FIREBASE_URL = "https://YOUR-PROJECT-NAME.firebaseio.com"; 
         const PIXEL_SIZE = 15;
 
         const pixelBoard = document.getElementById('pixel-board');
@@ -111,7 +109,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. جلب البيانات وتحديث اللوحة
+        // جلب وعرض البيانات وحل مشكلة عدم القابلية للضغط
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -119,11 +117,13 @@
                 if (!data) return;
                 takenPixels = data; 
                 
+                // تنظيف البيكسلات القديمة لتجنب التكرار
                 const oldPixels = pixelBoard.querySelectorAll('.user-pixel');
                 oldPixels.forEach(el => el.remove());
 
                 Object.keys(data).forEach(key => {
                     const p = data[key];
+                    if(!p) return;
                     const [x, y] = key.split('_');
                     
                     const pixelDiv = document.createElement('div');
@@ -131,17 +131,17 @@
                     pixelDiv.style.left = `${x}px`;
                     pixelDiv.style.top = `${y}px`;
 
-                    // ربط البيكسل برابط العميل مباشرة ليكون قابلاً للضغط
-                    pixelDiv.innerHTML = `<a href="${p.link}" target="_blank"><img src="${p.image}"></a>`;
+                    // الكود المصلح: إضافة الرابط والصورة وجعلها قابلة للضغط 100%
+                    pixelDiv.innerHTML = `<a href="${p.link}" target="_blank" rel="noopener"><img src="${p.image}"></a>`;
                     pixelBoard.appendChild(pixelDiv);
                 });
-            }).catch(err => console.log(err));
+            }).catch(err => console.log("Firebase Error:", err));
         }
 
         loadPixelsFromFirebase();
 
-        // دالة احتساب الموقع الفعلي
-        function handleBoardClick(clientX, clientY) {
+        // الدالة المحدثة بدقة شديدة لاحتساب احداثيات الجوال والكمبيوتر ومقاومة التزحزح
+        function handleInteraction(clientX, clientY) {
             const rect = pixelBoard.getBoundingClientRect();
             const clickX = clientX - rect.left;
             const clickY = clientY - rect.top;
@@ -151,9 +151,8 @@
 
             if (currentX < 0 || currentX >= 750 || currentY < 0 || currentY >= 750) return;
 
-            // حماية المربعات المحجوزة: إذا ضغط المستخدم على بيكسل مباع، يتم توجيهه لرابط العميل تلقائياً ولا يفتح المودال
+            // إذا كان البيكسل محجوزاً، لا تفعل شيئاً واترك المتصفح يفتح رابط العميل تلقائياً
             if (takenPixels[`${currentX}_${currentY}`]) {
-                window.open(takenPixels[`${currentX}_${currentY}`].link, '_blank');
                 return; 
             }
 
@@ -161,66 +160,69 @@
             paymentModal.style.display = 'flex';
         }
 
-        // تفعيل النقر للكمبيوتر والجوال
+        // إصلاح حدث النقر الموحد للجوال والكمبيوتر
         pixelBoard.addEventListener('click', function(e) {
-            // حل مشكلة عدم القابلية للضغط بالسماح بالنقر حتى لو كان العنصر فوق اللوحة
-            handleBoardClick(e.clientX, e.clientY);
+            // إذا كان الضغط على بيكسل للعميل، اتركه يفتح الرابط ولا تفتح نافذة الشراء
+            if (e.target !== pixelBoard) return; 
+            handleInteraction(e.clientX, e.clientY);
         });
 
         pixelBoard.addEventListener('touchend', function(e) {
+            if (e.target !== pixelBoard) return;
+            e.preventDefault(); // منع المتصفح من عمل نقرة مزدوجة وهمية
             const touch = e.changedTouches[0];
-            handleBoardClick(touch.clientX, touch.clientY);
+            handleInteraction(touch.clientX, touch.clientY);
         });
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // 2. آلية الدفع التلقائي وحفظ البيانات فوراً بعد الدفع التلقائي
+        // نظام الدفع التلقائي والحفظ الفوري بدون تدخل
         btnPayNow.onclick = async () => {
-            const clientLink = document.getElementById('pixel-link').value;
-            const clientImage = document.getElementById('pixel-image').value;
+            const clientLink = document.getElementById('pixel-link').value.trim();
+            const clientImage = document.getElementById('pixel-image').value.trim();
 
             if (!clientLink || !clientImage) {
-                alert("Please fill in both fields!");
+                alert("يرجى ملء جميع الحقول أولاً!");
                 return;
             }
 
             if (typeof window.ethereum === 'undefined') {
-                alert("No crypto wallet detected! Please open this page inside MetaMask/Trust Wallet browser.");
+                alert("لم يتم اكتشاف محفظة مشفرة! يرجى فتح هذا الموقع من داخل متصفح تطبيق MetaMask أو Trust Wallet.");
                 return;
             }
 
             try {
                 btnPayNow.disabled = true;
-                btnPayNow.innerText = "Connecting Wallet...";
+                btnPayNow.innerText = "جاري الاتصال بالمحفظة...";
 
-                // طلب الاتصال بالمحفظة وتحويل الشبكة لشبكة Polygon (POL)
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
 
-                btnPayNow.innerText = "Processing Payment...";
+                btnPayNow.innerText = "برجاء تأكيد الدفع (1 POL)...";
 
-                // إرسال 1 POL (تلقائياً وبدون تدخل منك) إلى محفظتك المحددة فوق
+                // الدفع التلقائي الفوري إلى محفظتك المذكورة بالأعلى
                 const tx = await signer.sendTransaction({
                     to: MY_WALLET_ADDRESS,
-                    value: ethers.utils.parseEther("1.0") // القيمة 1 POL
+                    value: ethers.utils.parseEther("1.0") 
                 });
 
-                btnPayNow.innerText = "Confirming Transaction...";
+                btnPayNow.innerText = "جاري تأكيد المعاملة على الشبكة...";
                 await tx.wait(); // الانتظار حتى تنجح العملية على البلوكتشين
 
-                btnPayNow.innerText = "Saving Pixel...";
+                btnPayNow.innerText = "جاري حفظ البيكسل وتحديث الموقع...";
 
-                // حفظ البيانات تلقائياً في الفايربيس بعد تأكيد الدفع بنجاح
                 const pixelKey = `${currentX}_${currentY}`;
-                const newPixelData = {
+                const newPixelData = {};
+                newPixelData[pixelKey] = {
                     link: clientLink,
                     image: clientImage,
                     txHash: tx.hash
                 };
 
-                await fetch(`${FIREBASE_URL}/pixels/${pixelKey}.json`, {
-                    method: 'PUT', // استخدام PUT لإنشاء الحقل أو استبداله بالكامل
+                // حفظ تلقائي مباشر في قاعدة بيانات الفايربيس
+                await fetch(`${FIREBASE_URL}/pixels.json`, {
+                    method: 'PATCH',
                     body: JSON.stringify(newPixelData)
                 });
 
