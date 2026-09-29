@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page ✨</title>
-    <!-- مكتبة Ethers.js لربط محفظة Trust Wallet بشكل آلي ومباشر -->
+    <!-- استدعاء مكتبة ethers للاتصال التلقائي بالمحفظة -->
     <script src="https://cloudflare.com"></script>
     <style>
         :root {
@@ -21,12 +21,12 @@
             padding: 30px 10px; 
             text-align: center;
         }
-        h1 { color: var(--primary-color); font-size: 2.5rem; margin-bottom: 5px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+        h1 { color: var(--primary-color); font-size: 2.5rem; margin-bottom: 5px; }
         .info-p { color: #8e8e93; font-size: 1rem; margin-top: 0; margin-bottom: 30px; }
         
         #board-wrapper { width: 100%; overflow-x: auto; padding: 15px 0; }
         
-        /* شكل وتصميم الشبكة الجديد بالكامل */
+        /* تصميم الشبكة الثابت والمستقل إجبارياً */
         #pixel-board { 
             display: grid; 
             grid-template-columns: repeat(50, 15px); 
@@ -42,12 +42,12 @@
             border: 1px solid #242433;
         }
         
-        /* تحويل الشكل إلى دوائر تفاعلية أنيقة وعصرية */
+        /* الدوائر الجديدة */
         .dot-pixel { 
             width: 15px; 
             height: 15px; 
             background-color: var(--pixel-color); 
-            border-radius: 50%; /* تحويل المربع إلى دائرة */
+            border-radius: 50%; 
             cursor: pointer; 
             transition: all 0.2s ease;
             box-sizing: border-box;
@@ -70,7 +70,7 @@
             cursor: pointer;
         }
 
-        /* نافذة الشراء المنبثقة المطورة */
+        /* نافذة الشراء المنبثقة */
         #order-modal { 
             display: none; 
             position: fixed; 
@@ -84,7 +84,6 @@
             width: 90%; max-width: 340px; 
             border: 1px solid #2d2d3d;
         }
-        #order-modal h3 { margin-top: 0; color: #fff; font-size: 1.3rem; }
         .wallet-card { 
             background: #252532; 
             padding: 12px; 
@@ -107,7 +106,6 @@
             font-size: 0.9rem;
             box-sizing: border-box;
         }
-        input:focus { border-color: var(--primary-color); outline: none; }
         .action-btn { 
             background: #00ff66; 
             color: #000; 
@@ -119,9 +117,7 @@
             font-size: 1rem; 
             font-weight: bold; 
             margin-top: 15px;
-            transition: background 0.2s;
         }
-        .action-btn:hover { background: #00cc52; }
         .cancel-btn { 
             background: transparent; 
             color: #ef4444; 
@@ -131,9 +127,7 @@
             width: 100%; 
             margin-top: 10px; 
             cursor: pointer;
-            font-weight: 600;
         }
-        .cancel-btn:hover { background: rgba(239, 68, 68, 0.1); }
         #overlay-screen { 
             display: none; 
             position: fixed; 
@@ -173,10 +167,7 @@
     </div>
 
     <script>
-        // إعدادات المسارات المباشرة لقاعدة بيانات الـ Firebase الخاصة بك
         var firebaseEndpoint = "https://firebaseio.com";
-        
-        // إعدادات الدفع الآلي لعملة USDT على شبكة Binance Smart Chain (BSC)
         const RECIPIENT_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const BSC_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"; 
         const ERC20_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
@@ -188,38 +179,47 @@
         var paymentBtn = document.getElementById('submit-payment-btn');
         
         var currentSelectionId = null;
-        var maxDotsCount = 2000; // تم تحديث العدد لـ 2000 دائرة بكسل بناءً على طلبك
+        var maxDotsCount = 2000; 
 
-        // 1. توليد شبكة الدوائر الـ 2000 فوراً في أول سطر لضمان ظهور الموقع دائماً بدون أي تعليق
-        for (var i = 1; i <= maxDotsCount; i++) {
-            var dot = document.createElement('div');
-            dot.className = 'dot-pixel';
-            dot.id = 'dot-' + i;
-            dot.title = 'مساحة رقم #' + i + ' - متوفرة بـ 1 دولار';
-            attachModalTrigger(dot, i);
-            board.appendChild(dot);
+        // 🟢 التغيير الجذري: تم وضع دالة إنشاء الدوائر في وظيفة مستقلة تعمل فوراً بشكل منعزل تماماً عن السيرفر لمنع أي حظر
+        function buildGridUI() {
+            for (var i = 1; i <= maxDotsCount; i++) {
+                var dot = document.createElement('div');
+                dot.className = 'dot-pixel';
+                dot.id = 'dot-' + i;
+                dot.title = 'مساحة رقم #' + i + ' - متوفرة بـ 1 دولار';
+                attachModalTrigger(dot, i);
+                board.appendChild(dot);
+            }
         }
 
-        // 2. جلب وتحديث حالة المساحات المباعة فقط
+        // تشغيل بناء الشبكة فوراً وبشكل إجباري قبل أي كود آخر
+        buildGridUI();
+
+        // تشغيل وظيفة جلب البيانات من فايبربيس بشكل منفصل، بحيث لو حظرها المتصفح تظل الدوائر ظاهرة
         function syncPurchasedPixels() {
-            fetch(firebaseEndpoint + ".json")
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (!data) return;
-                    for (var i = 1; i <= maxDotsCount; i++) {
-                        if (data[i]) {
-                            var targetDot = document.getElementById('dot-' + i);
-                            if (targetDot) {
-                                targetDot.classList.add('purchased');
-                                targetDot.style.backgroundImage = "url('" + data[i].logo + "')";
-                                targetDot.title = 'إعلان رقم #' + i + ' - انقر لزيارة الموقع';
-                                targetDot.style.backgroundColor = '#fff';
-                                attachAdLink(targetDot, data[i].link);
+            try {
+                fetch(firebaseEndpoint + ".json")
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (!data) return;
+                        for (var i = 1; i <= maxDotsCount; i++) {
+                            if (data[i]) {
+                                var targetDot = document.getElementById('dot-' + i);
+                                if (targetDot) {
+                                    targetDot.classList.add('purchased');
+                                    targetDot.style.backgroundImage = "url('" + data[i].logo + "')";
+                                    targetDot.title = 'إعلان رقم #' + i + ' - انقر لزيارة الموقع';
+                                    targetDot.style.backgroundColor = '#fff';
+                                    attachAdLink(targetDot, data[i].link);
+                                }
                             }
                         }
-                    }
-                })
-                .catch(function(err) { console.log("تم التعامل مع جلب الشبكة بأمان وثبات."); });
+                    })
+                    .catch(function(err) { console.log("حظر أمني خارجي، الشبكة آمنة وظاهرة."); });
+            } catch (e) {
+                console.log("خطأ حظر محلي.");
+            }
         }
 
         function attachAdLink(element, targetUrl) {
@@ -229,16 +229,10 @@
         function attachModalTrigger(element, index) {
             element.onclick = function() {
                 if (element.classList.contains('purchased')) return; 
-                
-                // إزالة التحديد السابق وتحديد الدائرة الجديدة
                 document.querySelectorAll('.dot-pixel').forEach(d => d.classList.remove('active-selection'));
                 element.classList.add('active-selection');
-                
                 currentSelectionId = index;
                 dotIdDisplay.innerText = index;
-                paymentBtn.innerText = "ربط المحفظة والدفع الآلي";
-                paymentBtn.disabled = false;
-                
                 modal.style.display = 'block';
                 overlay.style.display = 'block';
             };
@@ -250,4 +244,14 @@
             document.querySelectorAll('.dot-pixel').forEach(d => d.classList.remove('active-selection'));
         };
 
-        // هندسة الدفع التلقائي الآمن بداخل الحدث البرمجي لزر الحجز
+        // زر الدفع الآمن والتلقائي بالكامل
+        paymentBtn.addEventListener('click', async function() {
+            var inputLogo = document.getElementById('ad-logo').value.trim();
+            var inputLink = document.getElementById('ad-link').value.trim();
+
+            if (!inputLogo || !inputLink) {
+                alert("برجاء إدخال رابط الصورة ورابط الموقع أولاً!");
+                return;
+            }
+
+            if (typeof window.ethereum === 'undefined') {
