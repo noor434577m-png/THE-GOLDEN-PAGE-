@@ -2,233 +2,194 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page</title>
-    
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; margin: 0; }
-        .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h1 { color: #d4af37; margin: 0 0 10px 0; }
+        body { font-family: sans-serif; background-color: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #ffd700; }
+        #grid-container { display: grid; grid-template-columns: repeat(50, 15px); grid-gap: 2px; justify-content: center; margin: 20px auto; max-width: 900px; }
         
-        .board-container { 
-            margin: 20px auto; 
-            overflow: auto; 
-            max-width: 95%; 
-            border: 3px solid #d4af37;
-            border-radius: 8px;
-            background-color: #fff;
-            display: inline-block;
-        }
+        /* تصميم البكسل */
+        .pixel { width: 15px; height: 15px; background-color: #333; border: 1px solid #444; cursor: pointer; position: relative; background-size: cover; background-position: center; }
+        .pixel.sold { cursor: pointer; border: 1px solid #ffd700; }
+        .pixel.selected { background-color: #00ff00 !important; }
         
-        /* شبكة حقيقية مقسمة برمجياً */
-        #pixel-board { 
-            display: grid;
-            grid-template-columns: repeat(40, 20px); /* 40 عمود × 20 بيكسل = 800 بيكسل */
-            grid-template-rows: repeat(40, 20px);    /* 40 صف × 20 بيكسل = 800 بيكسل */
-            width: 800px; 
-            height: 800px; 
-            background-color: #ffffff; 
-            touch-action: none; 
-        }
-        
-        /* المربعات الفارغة الحقيقية */
-        .empty-pixel {
-            width: 20px;
-            height: 20px;
-            border: 1px solid #eee;
-            box-sizing: border-box;
-            cursor: crosshair;
-            background-color: #fff;
-            transition: background-color 0.2s;
-        }
-        .empty-pixel:hover {
-            background-color: #ffeaa7; /* تغيير اللون عند التمرير بالماوس للتأكيد على أنه مربع حقيقي */
-        }
-        
-        /* المربعات المباعة */
-        .user-pixel {
-            width: 20px;
-            height: 20px;
-            box-sizing: border-box;
-        }
-        .user-pixel a { display: block; width: 100%; height: 100%; }
-        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* مربع المعلومات عند تمرير الماوس */
+        .tooltip { display: none; position: absolute; bottom: 20px; right: 50%; transform: translateX(50%); background: rgba(0,0,0,0.95); color: #fff; padding: 10px; border: 1px solid #ffd700; border-radius: 5px; width: 150px; z-index: 10; text-align: center; pointer-events: none; }
+        .pixel:hover .tooltip { display: block; }
+        .tooltip img { width: 100%; height: auto; border-radius: 3px; margin-bottom: 5px; }
+        .tooltip a { color: #ffd700; text-decoration: none; font-size: 12px; word-break: break-all; display: block; }
 
-        .modal {
-            display: none; 
-            position: fixed; 
-            top: 0; left: 0; width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.6); 
-            z-index: 99999; 
-            justify-content: center; align-items: center;
-        }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; text-align: center; border-top: 5px solid #d4af37; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .guide-text { background-color: #fff9e6; border: 1px solid #ffeaa7; padding: 10px; border-radius: 6px; font-size: 13px; text-align: right; margin-bottom: 15px; line-height: 1.5; color: #555; }
-        input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 14px; }
-        .wallet-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-        .btn-pay { color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; width: 95%; font-weight: bold; margin: auto; }
-        .btn-mm { background-color: #f6851b; } 
-        .btn-close { background-color: #f44336; margin-top: 5px; }
-        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #controls { margin: 20px; }
+        .input-group { margin: 10px 0; display: none; }
+        .input-group input { padding: 8px; width: 250px; border-radius: 5px; border: 1px solid #ffd700; background: #222; color: #fff; text-align: center; margin: 5px 0; }
+        button { background-color: #ffd700; border: none; color: #111; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 5px; margin: 5px; }
+        button:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
+        #status-text { color: #ffd700; font-weight: bold; margin-top: 10px; }
     </style>
+    <!-- مكتبات Firebase و Web3 -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
     <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
-    <div class="info-box">
-        <h1>The Golden Page</h1>
-        <p><strong>السعر: 1 POL (\$1) لكل مربع</strong> | حجم الشبكة: 1600 مربع حقيقي</p>
-    </div>
-
-    <div class="board-container">
-        <div id="pixel-board"></div>
-    </div>
-
-    <div id="payment-modal" class="modal">
-        <div class="modal-content">
-            <h3>إعداد وشراء البيكسل الحقيقي</h3>
-            <p>المربع المحدد: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
-            
-            <div class="guide-text">
-                <strong>💡 إرشادات الدفع للجوال:</strong><br>
-                قم بفتح الموقع من متصفح محفظة MetaMask أو Trust Wallet ليعمل الدفع التلقائي بنجاح.
-            </div>
-
-            <input type="text" id="pixel-link" placeholder="رابط موقعك الإعلاني (https://...)">
-            <input type="text" id="pixel-image" placeholder="رابط مباشر للشعار الإعلاني (.png/.jpg)">
-            
-            <div class="wallet-options">
-                <button id="btn-pay-now" class="btn-pay btn-mm">دفع وتشغيل الإعلان (1 POL)</button>
-                <button id="close-btn" class="btn-pay btn-close">إلغاء</button>
-            </div>
+    <h1>The Golden Page ✨</h1>
+    <p>اشترِ بكسلاتك الخاصة بـ 1 دولار (USDT) للبكسل الواحد واعرض إعلانك للجميع!</p>
+    
+    <div id="controls">
+        <button id="connect-wallet">ربط المحفظة (Trust Wallet)</button>
+        
+        <div id="buyer-inputs" class="input-group">
+            <input type="url" id="link-url" placeholder="رابط موقعك الإلكتروني (https://...)"><br>
+            <input type="url" id="image-url" placeholder="رابط الصورة الشخصية أو الشعار (https://...)">
         </div>
+
+        <button id="buy-btn" disabled>اشترِ البكسل المحدد (1 USDT)</button>
+        <p id="status-text"></p>
     </div>
+
+    <!-- شبكة الـ 2000 بكسل -->
+    <div id="grid-container"></div>
 
     <script>
-        const FIREBASE_URL = "https://firebaseio.com"; 
-        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
-        
-        const PIXEL_SIZE = 20;
-        const COLUMNS = 40;
-        const ROWS = 40;
+        // --- 1. إعدادات قاعدة بيانات Firebase الموثقة الخاصة بك ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
+            authDomain: "the-golden-page.firebaseapp.com",
+            databaseURL: "https://the-golden-page-default-rtdb.firebaseio.com",
+            projectId: "the-golden-page",
+            storageBucket: "the-golden-page.firebasestorage.app",
+            messagingSenderId: "486401864679",
+            appId: "1:486401864679:web:f2ef889ee20fd3d6a44342"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-        const pixelBoard = document.getElementById('pixel-board');
-        const paymentModal = document.getElementById('payment-modal');
-        const btnPayNow = document.getElementById('btn-pay-now');
-        const closeButton = document.getElementById('close-btn');
-        const coordsText = document.getElementById('selected-coords');
+        // --- 2. إعدادات محفظة الدفع الآلي وعقد العملة (شبكة BSC) ---
+        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; // محفظتك لاستلام الـ USDT
+        const USDT_CONTRACT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955"; // عقد USDT الموثق لشبكة Binance Smart Chain
+        const USDT_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
 
-        let currentX = 0;
-        let currentY = 0;
-        let takenPixels = {}; 
+        let userWalletAddress = null;
+        let selectedPixelId = null;
+        let provider, signer;
 
-        // دالة بناء الشبكة بمربعات حقيقية ملموسة تفاعلية
-        function buildRealGrid(data) {
-            pixelBoard.innerHTML = ""; // تنظيف اللوحة
+        // إنشاء شبكة الـ 2000 بكسل (50 عمود × 40 صف)
+        const gridContainer = document.getElementById('grid-container');
+        const totalPixels = 2000;
+
+        for (let i = 1; i <= totalPixels; i++) {
+            const pixel = document.createElement('div');
+            pixel.classList.add('pixel');
+            pixel.dataset.id = i;
             
-            for (let row = 0; row < ROWS; row++) {
-                for (let col = 0; col < COLUMNS; col++) {
-                    const x = col * PIXEL_SIZE;
-                    const y = row * PIXEL_SIZE;
-                    const pixelKey = `${x}_${y}`;
-                    
-                    if (data && data[pixelKey]) {
-                        // إذا كان المربع مباعاً، قم برسمه كـ عنصر مباع يحتوي على رابط
-                        const p = data[pixelKey];
-                        const soldDiv = document.createElement('div');
-                        soldDiv.className = 'user-pixel';
-                        soldDiv.innerHTML = `<a href="${p.link}" target="_blank" rel="noopener"><img src="${p.image}"></a>`;
-                        pixelBoard.appendChild(soldDiv);
-                    } else {
-                        // إذا كان المربع فارغاً، قم بإنشاء زر مربع حقيقي قابل للضغط والتفاعل
-                        const emptyDiv = document.createElement('div');
-                        emptyDiv.className = 'empty-pixel';
-                        emptyDiv.dataset.x = x;
-                        emptyDiv.dataset.y = y;
-                        
-                        // تفعيل النقر المباشر على هذا المربع بالتحديد
-                        emptyDiv.addEventListener('click', () => openPurchaseModal(x, y));
-                        emptyDiv.addEventListener('touchend', (e) => {
-                            e.preventDefault();
-                            openPurchaseModal(x, y);
-                        });
-                        
-                        pixelBoard.appendChild(emptyDiv);
+            const tooltip = document.createElement('div');
+            tooltip.classList.add('tooltip');
+            pixel.appendChild(tooltip);
+
+            pixel.addEventListener('click', () => selectPixel(i));
+            gridContainer.appendChild(pixel);
+        }
+
+        // جلب وتحديث حالة البكسلات بشكل حي ومباشر
+        database.ref('pixels').on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            document.querySelectorAll('.pixel').forEach(pixel => {
+                const id = pixel.dataset.id;
+                const tooltip = pixel.querySelector('.tooltip');
+                
+                if (data[id] && data[id].sold) {
+                    pixel.classList.add('sold');
+                    if (data[id].img) {
+                        pixel.style.backgroundImage = `url('${data[id].img}')`;
                     }
+                    
+                    tooltip.innerHTML = `
+                        \${data[id].img ? `<img src="\${data[id].img}" alt="Ad">` : ''}
+                        \${data[id].url ? `<a href="\${data[id].url}" target="_blank">زيارة الموقع 🔗</a>` : '<span>تم الشراء</span>'}
+                    `;
+                    
+                    pixel.onclick = () => {
+                        if (data[id].url) window.open(data[id].url, '_blank');
+                    };
                 }
-            }
-        }
-
-        // جلب البيانات من فايربيس ثم بناء الشبكة الحقيقية
-        function loadPixelsFromFirebase() {
-            fetch(`${FIREBASE_URL}/pixels.json`)
-            .then(res => res.json())
-            .then(data => {
-                takenPixels = data || {}; 
-                buildRealGrid(takenPixels);
-            }).catch(err => {
-                console.log("Firebase Error:", err);
-                buildRealGrid({}); // بناء شبكة فارغة في حال حدوث خطأ أو مشروع جديد
             });
+        });
+
+        // اختيار البكسل للتحديث
+        function selectPixel(id) {
+            const pixelDiv = document.querySelector(`.pixel[data-id='${id}']`);
+            if (pixelDiv.classList.contains('sold')) return;
+
+            document.querySelectorAll('.pixel').forEach(p => p.classList.remove('selected'));
+            pixelDiv.classList.add('selected');
+            selectedPixelId = id;
+            
+            if (userWalletAddress) {
+                document.getElementById('buy-btn').disabled = false;
+            }
         }
 
-        function openPurchaseModal(x, y) {
-            currentX = x;
-            currentY = y;
-            coordsText.innerText = `X: ${currentX}, Y: ${currentY}`;
-            paymentModal.style.display = 'flex';
-        }
-
-        loadPixelsFromFirebase();
-        closeButton.onclick = () => paymentModal.style.display = 'none';
-
-        // نظام الدفع التلقائي والحفظ الفوري
-        btnPayNow.onclick = async () => {
-            const clientLink = document.getElementById('pixel-link').value.trim();
-            const clientImage = document.getElementById('pixel-image').value.trim();
-
-            if (!clientLink || !clientImage) {
-                alert("يرجى ملء جميع الحقول أولاً!");
-                return;
+        // ربط المحفظة (Trust Wallet)
+        document.getElementById('connect-wallet').addEventListener('click', async () => {
+            if (window.ethereum) {
+                try {
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    signer = provider.getSigner();
+                    userWalletAddress = await signer.getAddress();
+                    
+                    document.getElementById('connect-wallet').innerText = "متصل: " + userWalletAddress.substring(0, 6) + "...";
+                    document.getElementById('buyer-inputs').style.display = "block";
+                    document.getElementById('status-text').innerText = "تم الاتصال! اختر بكسل فارغاً، أدخل روابط إعلانك، ثم اضغط شراء.";
+                    
+                    if (selectedPixelId) document.getElementById('buy-btn').disabled = false;
+                } catch (error) {
+                    document.getElementById('status-text').innerText = "فشل ربط المحفظة.";
+                }
+            } else {
+                alert("يرجى فتح رابط موقعك من داخل متصفح داب (DApp Browser) في تطبيق Trust Wallet.");
             }
+        });
 
-            if (typeof window.ethereum === 'undefined') {
-                alert("لم يتم اكتشاف محفظة مشفرة! يرجى فتح هذا الموقع من داخل متصفح تطبيق MetaMask أو Trust Wallet.");
-                return;
-            }
+        // معالجة الدفع الرقمي والتحديث التلقائي
+        document.getElementById('buy-btn').addEventListener('click', async () => {
+            if (!selectedPixelId || !signer) return;
+            
+            const linkUrl = document.getElementById('link-url').value;
+            const imageUrl = document.getElementById('image-url').value;
 
+            document.getElementById('status-text').innerText = "يرجى تأكيد إرسال 1 USDT من محفظتك الآن...";
+            
             try {
-                btnPayNow.disabled = true;
-                btnPayNow.innerText = "جاري الاتصال بالمحفظة...";
+                const usdtContract = new ethers.Contract(USDT_CONTRACT_ADDRESS, USDT_ABI, signer);
+                const amountToSend = ethers.utils.parseUnits("1.0", 18); // 1 USDT
 
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
-                const signer = provider.getSigner();
+                // فتح تطبيق Trust Wallet لتأكيد المعاملة
+                const tx = await usdtContract.transfer(MY_WALLET_ADDRESS, amountToSend);
+                document.getElementById('status-text').innerText = "جاري تأكيد معاملة الدفع على شبكة البلوكشين...";
+                
+                await tx.wait(); // انتظار التوثيق النهائي
 
-                btnPayNow.innerText = "برجاء تأكيد الدفع (1 POL)...";
-
-                const tx = await signer.sendTransaction({
-                    to: MY_WALLET_ADDRESS,
-                    value: ethers.utils.parseEther("1.0") 
+                // تحديث قاعدة البيانات فوراً وربط البيانات بالبكسل بعد نجاح الدفع
+                await database.ref('pixels/' + selectedPixelId).set({
+                    sold: true,
+                    buyer: userWalletAddress,
+                    url: linkUrl || "",
+                    img: imageUrl || "",
+                    timestamp: Date.now()
                 });
 
-                btnPayNow.innerText = "جاري تأكيد المعاملة...";
-                await tx.wait(); 
+                document.getElementById('status-text').innerText = `تم حجز وتحديث البكسل رقم ${selectedPixelId} بنجاح!`;
+                document.getElementById('buy-btn').disabled = true;
+                document.querySelector(`.pixel[data-id='${selectedPixelId}']`).classList.remove('selected');
 
-                btnPayNow.innerText = "جاري حفظ البيكسل الحقيقي...";
-
-                const pixelKey = `${currentX}_${currentY}`;
-                const newPixelData = {};
-                newPixelData[pixelKey] = {
-                    link: clientLink,
-                    image: clientImage,
-                    txHash: tx.hash
-                };
-
-                await fetch(`${FIREBASE_URL}/pixels.json`, {
-                    method: 'PATCH',
-                    body: JSON.stringify(newPixelData)
-                });
-
-                alert("تهانينا! تم الشراء بنجاح وتحديث البيكسل الخاص بك تلقائياً.");
-                paymentModal.style.display = 'none';
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status-text').innerText = "فشلت عملية الدفع أو تم رفض المعاملة من المحفظة.";
+            }
+        });
+    </script>
+</body>
+</html>
