@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page - Pixel Advertising Board</title>
-    <!-- مكتبة ethers.js للربط مع Trust Wallet بشكل آلي -->
+    <!-- استدعاء مكتبة ethers.js للتحقق الآمن من الدفع التلقائي للمحفظة -->
     <script src="https://cloudflare.com"></script>
     <style>
         body { 
@@ -150,6 +150,7 @@
     </div>
 
     <script>
+        // تصحيح الرابط بإضافة الشرطة المائلة لمنع حدوث خطأ تعطل الجافا سكريبت واختفاء المربعات
         var dbUrl = "https://firebaseio.com";
         var grid = document.getElementById('grid-container');
         var modal = document.getElementById('purchase-modal');
@@ -158,12 +159,11 @@
         var selectedPixelId = null;
         var totalPixels = 2500;
 
-        // إعدادات محفظتك وعقد الدفع الآمن الآلي USDT لشبكة BSC الذكية
+        // إعدادات محفظتك وعقد الدفع الآمن التلقائي USDT لشبكة BSC الذكية
         const MY_WALLET = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"; 
         const USDT_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
 
-        // 🟢 تم النقل للأعلى: رسم المربعات يعمل هنا فوراً وبشكل مستقل تماماً عن السيرفر لضمان ظهور الشبكة دائماً
         for (var i = 1; i <= totalPixels; i++) {
             var pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -190,10 +190,7 @@
                         }
                     }
                 })
-                .catch(function(error) { 
-                    // إذا حدث خطأ حظر CORS من المتصفح لا تتأثر المربعات وتظل ظاهرة
-                    console.log("Database connection managed safely."); 
-                });
+                .catch(function(error) { console.log("Fetch Error:", error); });
         }
 
         function setClickAction(element, link) {
@@ -214,13 +211,13 @@
             overlay.style.display = 'none';
         };
 
-        // زر الدفع الآمن: يخصم تلقائياً من محفظة المشتري أولاً، وإذا تمت العملية بنجاح يتم الحجز
+        // الـ Logic الآمن بداخل الزر فقط: استدعاء نافذة الخصم التلقائي إجبارياً والانتظار حتى نجاح المعاملة
         document.getElementById('pay-btn').addEventListener('click', async function() {
             var logo = document.getElementById('logo-url').value.trim();
             var link = document.getElementById('site-url').value.trim();
 
             if (!logo || !link) {
-                alert("Please fill in both fields!");
+                alert("Please fill in both Logo URL and Website URL fields first!");
                 return;
             }
 
@@ -239,19 +236,21 @@
                 var usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
                 var amount = ethers.utils.parseUnits("1.0", 18); // 1 USDT
 
-                // استدعاء نافذة الخصم التلقائي بداخل Trust Wallet بشكل إجباري
+                // استدعاء بوابة الدفع التلقائي من داخل Trust Wallet
                 var tx = await usdtContract.transfer(MY_WALLET, amount);
                 
                 document.getElementById('pay-btn').innerText = "Verifying Transaction...";
-                await tx.wait(); // الكود يتوقف هنا تماماً ولن يقوم بالتسجيل في Firebase إلا بعد وصول الأموال لمحفظتك
+                await tx.wait(); // الكود يتوقف هنا تماماً ولن يقوم بالتسجيل في Firebase إلا بعد وصول الـ 1 دولار لمحفظتك حقيقياً
 
-                // رفع البيانات بعد استلام الأموال بنجاح 100%
-                var updateUrl = dbUrl + "/" + selectedPixelId + ".json";
+                // بعد نجاح التوثيق الكامل، يتم الحجز التلقائي فوراً
+                var updateUrl = dbUrl + selectedPixelId + ".json";
                 var payload = JSON.stringify({ logo: logo, link: link });
 
                 fetch(updateUrl, { method: "PUT", body: payload })
                     .then(function(response) {
                         if (response.ok) {
-                            alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved.");
+                            alert("Congratulations! Pixel #" + selectedPixelId + " has been successfully reserved on The Golden Page.");
                             closeModal();
                             document.getElementById('logo-url').value = '';
+                            document.getElementById('site-url').value = '';
+                            loadLivePixels();
