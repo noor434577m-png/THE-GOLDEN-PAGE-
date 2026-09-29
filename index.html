@@ -53,11 +53,11 @@
     <div id="grid-container"></div>
 
     <script>
-        // --- 1. إعدادات قاعدة بيانات Firebase الموثقة الخاصة بك ---
+        // --- 1. إعدادات قاعدة بيانات Firebase الخاصة بك ---
         const firebaseConfig = {
             apiKey: "AIzaSyD-To1EM4IbuwxWg3jtedMiDmXyHeWUJQk",
-            authDomain: "the-golden-page.firebaseapp.com",
-            databaseURL: "https://the-golden-page-default-rtdb.firebaseio.com",
+            authDomain: "://firebaseapp.com",
+            databaseURL: "https://firebaseio.com",
             projectId: "the-golden-page",
             storageBucket: "the-golden-page.firebasestorage.app",
             messagingSenderId: "486401864679",
@@ -66,16 +66,16 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // --- 2. إعدادات محفظة الدفع الآلي وعقد العملة (شبكة BSC) ---
-        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; // محفظتك لاستلام الـ USDT
-        const USDT_CONTRACT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955"; // عقد USDT الموثق لشبكة Binance Smart Chain
+        // --- 2. إعدادات محفظة الدفع الآلي وعقد العملة ---
+        const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
+        const USDT_CONTRACT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955"; 
         const USDT_ABI = [ "function transfer(address to, uint256 amount) returns (bool)" ];
 
         let userWalletAddress = null;
         let selectedPixelId = null;
         let provider, signer;
 
-        // إنشاء شبكة الـ 2000 بكسل (50 عمود × 40 صف)
+        // إنشاء شبكة الـ 2000 بكسل
         const gridContainer = document.getElementById('grid-container');
         const totalPixels = 2000;
 
@@ -92,7 +92,7 @@
             gridContainer.appendChild(pixel);
         }
 
-        // جلب وتحديث حالة البكسلات بشكل حي ومباشر
+        // جلب وتحديث حالة البكسلات بشكل حي ومباشر بدون أخطاء نصية
         database.ref('pixels').on('value', (snapshot) => {
             const data = snapshot.val() || {};
             document.querySelectorAll('.pixel').forEach(pixel => {
@@ -102,13 +102,20 @@
                 if (data[id] && data[id].sold) {
                     pixel.classList.add('sold');
                     if (data[id].img) {
-                        pixel.style.backgroundImage = `url('${data[id].img}')`;
+                        pixel.style.backgroundImage = "url('" + data[id].img + "')";
                     }
                     
-                    tooltip.innerHTML = `
-                        \${data[id].img ? `<img src="\${data[id].img}" alt="Ad">` : ''}
-                        \${data[id].url ? `<a href="\${data[id].url}" target="_blank">زيارة الموقع 🔗</a>` : '<span>تم الشراء</span>'}
-                    `;
+                    // استخدام دمج النصوص التقليدي الآمن لتجنب مشاكل علامات الاقتباس المائلة
+                    let tooltipContent = "";
+                    if (data[id].img) {
+                        tooltipContent += "<img src='" + data[id].img + "' alt='Ad'>";
+                    }
+                    if (data[id].url) {
+                        tooltipContent += "<a href='" + data[id].url + "' target='_blank'>زيارة الموقع 🔗</a>";
+                    } else {
+                        tooltipContent += "<span>تم الشراء</span>";
+                    }
+                    tooltip.innerHTML = tooltipContent;
                     
                     pixel.onclick = () => {
                         if (data[id].url) window.open(data[id].url, '_blank');
@@ -117,9 +124,9 @@
             });
         });
 
-        // اختيار البكسل للتحديث
+        // اختيار البكسل
         function selectPixel(id) {
-            const pixelDiv = document.querySelector(`.pixel[data-id='${id}']`);
+            const pixelDiv = document.querySelector(".pixel[data-id='" + id + "']");
             if (pixelDiv.classList.contains('sold')) return;
 
             document.querySelectorAll('.pixel').forEach(p => p.classList.remove('selected'));
@@ -131,7 +138,7 @@
             }
         }
 
-        // ربط المحفظة (Trust Wallet)
+        // ربط المحفظة
         document.getElementById('connect-wallet').addEventListener('click', async () => {
             if (window.ethereum) {
                 try {
@@ -142,37 +149,35 @@
                     
                     document.getElementById('connect-wallet').innerText = "متصل: " + userWalletAddress.substring(0, 6) + "...";
                     document.getElementById('buyer-inputs').style.display = "block";
-                    document.getElementById('status-text').innerText = "تم الاتصال! اختر بكسل فارغاً، أدخل روابط إعلانك، ثم اضغط شراء.";
+                    document.getElementById('status-text').innerText = "تم الاتصال بنجاح! اختر بكسل فارغاً للبدء.";
                     
                     if (selectedPixelId) document.getElementById('buy-btn').disabled = false;
                 } catch (error) {
                     document.getElementById('status-text').innerText = "فشل ربط المحفظة.";
                 }
             } else {
-                alert("يرجى فتح رابط موقعك من داخل متصفح داب (DApp Browser) في تطبيق Trust Wallet.");
+                alert("يرجى فتح رابط موقعك من داخل متصفح تطبيق Trust Wallet (قسم DApps).");
             }
         });
 
-        // معالجة الدفع الرقمي والتحديث التلقائي
+        // الدفع الإلكتروني والتحديث التلقائي
         document.getElementById('buy-btn').addEventListener('click', async () => {
             if (!selectedPixelId || !signer) return;
             
             const linkUrl = document.getElementById('link-url').value;
             const imageUrl = document.getElementById('image-url').value;
 
-            document.getElementById('status-text').innerText = "يرجى تأكيد إرسال 1 USDT من محفظتك الآن...";
+            document.getElementById('status-text').innerText = "يرجى تأكيد المعاملة من محفظتك الآن...";
             
             try {
                 const usdtContract = new ethers.Contract(USDT_CONTRACT_ADDRESS, USDT_ABI, signer);
-                const amountToSend = ethers.utils.parseUnits("1.0", 18); // 1 USDT
+                const amountToSend = ethers.utils.parseUnits("1.0", 18); 
 
-                // فتح تطبيق Trust Wallet لتأكيد المعاملة
                 const tx = await usdtContract.transfer(MY_WALLET_ADDRESS, amountToSend);
-                document.getElementById('status-text').innerText = "جاري تأكيد معاملة الدفع على شبكة البلوكشين...";
+                document.getElementById('status-text').innerText = "جاري تأكيد المعاملة على الشبكة...";
                 
-                await tx.wait(); // انتظار التوثيق النهائي
+                await tx.wait(); 
 
-                // تحديث قاعدة البيانات فوراً وربط البيانات بالبكسل بعد نجاح الدفع
                 await database.ref('pixels/' + selectedPixelId).set({
                     sold: true,
                     buyer: userWalletAddress,
@@ -181,13 +186,13 @@
                     timestamp: Date.now()
                 });
 
-                document.getElementById('status-text').innerText = `تم حجز وتحديث البكسل رقم ${selectedPixelId} بنجاح!`;
+                document.getElementById('status-text').innerText = "تم الشراء والتحديث بنجاح!";
                 document.getElementById('buy-btn').disabled = true;
-                document.querySelector(`.pixel[data-id='${selectedPixelId}']`).classList.remove('selected');
+                document.querySelector(".pixel[data-id='" + selectedPixelId + "']").classList.remove('selected');
 
             } catch (error) {
                 console.error(error);
-                document.getElementById('status-text').innerText = "فشلت عملية الدفع أو تم رفض المعاملة من المحفظة.";
+                document.getElementById('status-text').innerText = "تم إلغاء المعاملة أو حدث خطأ أثناء الدفع.";
             }
         });
     </script>
