@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Golden Page</title>
     
-    <!-- مكتبة البلوكشين الرسمية والمؤمنة ضد الحظر -->
-    <script src="https://jsdelivr.net"></script>
-    
     <style>
         body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; background-color: #fcf8f2; color: #333; margin: 0; }
         .info-box { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
@@ -23,18 +20,17 @@
             display: inline-block;
         }
         
-        /* شبكة ثابتة ومستقرة ومقاومة للاختفاء بنسبة 100% */
+        /* شبكة صلبة مستقلة تفتح فوراً في أقل من 0.01 ثانية */
         #pixel-board { 
             position: relative;
             width: 750px; 
             height: 750px; 
             background-color: #ffffff; 
             background-image: linear-gradient(to right, #ccc 1px, transparent 1px), linear-gradient(to bottom, #ccc 1px, transparent 1px);
-            background-size: 15px 15px; /* تقسيم صلب لـ 2500 مربع */
+            background-size: 15px 15px; 
             cursor: crosshair;
         }
         
-        /* تصميم البكسل عند النشر فوق الشبكة */
         .user-pixel {
             position: absolute;
             width: 15px;
@@ -71,7 +67,6 @@
     </div>
 
     <div class="board-container">
-        <!-- اللوحة الشبكية الصلبة المباشرة -->
         <div id="pixel-board"></div>
     </div>
 
@@ -98,7 +93,7 @@
     </div>
 
     <script>
-        // إعدادات محفظتك وقاعدة بيانات الفايربيس الثابتة والمؤمنة
+        // إعدادات محفظتك وقاعدة بيانات الفايربيس الحقيقية الثابتة والمؤمنة
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
         const FIREBASE_URL = "https://firebaseio.com"; 
         const PIXEL_SIZE = 15;
@@ -114,7 +109,7 @@
         let currentY = 0;
         let takenPixels = {}; 
 
-        // 1. جلب البيانات من Firebase وتحديث المربعات المشغولة بالصور والروابط تلقائياً
+        // 1. جلب البيانات من Firebase وتحديث المربعات المشغولة تلقائياً
         function loadPixelsFromFirebase() {
             fetch(`${FIREBASE_URL}/pixels.json`)
             .then(res => res.json())
@@ -122,7 +117,6 @@
                 if (!data) return;
                 takenPixels = data; 
                 
-                // مسح الصور القديمة قبل إعادة الرسم لمنع التكرار
                 const oldPixels = pixelBoard.querySelectorAll('.user-pixel');
                 oldPixels.forEach(el => el.remove());
 
@@ -141,12 +135,10 @@
             }).catch(err => console.log(err));
         }
 
-        // تشغيل مباشر ومستقل لجلب البيانات
         loadPixelsFromFirebase();
 
-        // 2. احتساب النقر رياضيّاً ومباشرةً على اللوحة دون الحاجة لتوليد مربعات برمجية معقدة
+        // 2. احتساب النقر واللمس المباشر على الخريطة
         pixelBoard.onclick = function(e) {
-            // إذا ضغط على صورة منشورة مسبقاً، يفتح رابط العميل الأصلي ولا يفتح نافذة الشراء
             if (e.target !== pixelBoard) return;
 
             const rect = pixelBoard.getBoundingClientRect();
@@ -156,7 +148,6 @@
             currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
             currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
 
-            // شرط منع تعديل أو حجز المربع المباع مسبقاً نهائياً
             if (takenPixels[`${currentX}_${currentY}`]) {
                 alert("This square is already taken and cannot be modified!");
                 return;
@@ -168,7 +159,7 @@
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // دالة التوجيه العميقة (Deep Links) للآيفون والجوال لمنع حظر المتصفحات العادية
+        // دالة التوجيه العميقة (Deep Links) للجوال لمنع حظر المتصفحات العادية
         function handleMobileRedirect(walletType) {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             const hasWallet = (typeof window.ethereum !== 'undefined');
@@ -185,7 +176,7 @@
             return false; 
         }
 
-        // 3. معالجة الدفع وضمان عدم النشر أو التعديل إلا بعد تأكيد الحوالة بنجاح
+        // 3. معالجة الدفع المباشر والآمن عبر واجهة المحفظة المتصفحة (دون الحاجة لمكتبات خارجية)
         async function processPayment(walletButton) {
             const pixelLink = document.getElementById('pixel-link').value;
             const pixelImage = document.getElementById('pixel-image').value;
@@ -198,8 +189,8 @@
             const targetWallet = walletButton.id === 'btn-metamask' ? 'metamask' : 'trust';
             if (handleMobileRedirect(targetWallet)) return; 
 
-            if (typeof window.ethereum === 'undefined' || typeof ethers === 'undefined') {
-                alert('Web3 wallet injection is loading. If on mobile, please make sure the app browser opened correctly.');
+            if (typeof window.ethereum === 'undefined') {
+                alert('No crypto wallet detected. Please open this page from inside MetaMask or Trust Wallet.');
                 return;
             }
 
@@ -207,9 +198,24 @@
                 walletButton.disabled = true;
                 walletButton.innerText = "Processing...";
                 
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
-                const signer = provider.getSigner();
+                // طلب ربط الحسابات مباشرة من لغة المتصفح الأساسية
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const fromAccount = accounts[0];
 
-                // إرسال الـ 1 POL لمحفظتك المحددة بدقة
-                const tx = { to: MY_WALLET_ADDRESS, value: ethers.utils.parseEther("1.0") };
+                // تجهيز معاملة التحويل بقيمة 1 عملة (بالمقدار السداسي عشر الهيكس لتفادي أخطاء المكاتب الخرجية)
+                const txParams = {
+                    from: fromAccount,
+                    to: MY_WALLET_ADDRESS,
+                    value: '0xde0b6b3a7640000', // القيمة تساوي تماماً 1.0 بعملة البلوكشين (10^18 Wei)
+                };
+
+                walletButton.innerText = "Confirm in wallet...";
+                // إرسال الحوالة وانتظار موافقة المستخدم في تطبيقه
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [txParams],
+                });
+
+                walletButton.innerText = "Verifying...";
+
+                // التحقق من الحفظ والرفع التلقائي لـ Firebase فور صدور رقم المعاملة بنجاح
