@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -21,27 +21,28 @@
             position: relative;
         }
         
+        /* إعدادات الشبكة المحدثة */
         #pixel-board { 
             position: relative;
-            width: 750px; 
-            height: 750px; 
+            width: 800px; 
+            height: 800px; 
             background-color: #ffffff; 
             background-image: linear-gradient(to right, #ccc 1px, transparent 1px), linear-gradient(to bottom, #ccc 1px, transparent 1px);
-            background-size: 15px 15px; 
+            background-size: 20px 20px; 
             cursor: crosshair;
-            /* منع المتصفح من عمل زووم بالخطأ أثناء اللمس */
             touch-action: none; 
         }
         
+        /* صيغة البيكسل الجديدة لتفادي مشاكل عدم القابلية للضغط على الجوال */
         .user-pixel {
             position: absolute;
-            width: 15px;
-            height: 15px;
+            width: 20px;
+            height: 20px;
             box-sizing: border-box;
-            z-index: 999; /* رفع الطبقة لأعلى شيء لتصبح قابلة للضغط فوراً */
+            z-index: 999;
         }
-        .user-pixel a { display: block; width: 100%; height: 100%; }
-        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .user-pixel a { display: block; width: 100%; height: 100%; pointer-events: auto; }
+        .user-pixel img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 
         .modal {
             display: none; 
@@ -66,7 +67,7 @@
 
     <div class="info-box">
         <h1>The Golden Page</h1>
-        <p><strong>Price: 1 POL (\$1) per square</strong> | Grid size: 2500 Squares</p>
+        <p><strong>السعر: 1 POL (\$1) لكل مربع</strong> | حجم الشبكة: 1600 مربع</p>
     </div>
 
     <div class="board-container">
@@ -75,20 +76,20 @@
 
     <div id="payment-modal" class="modal">
         <div class="modal-content">
-            <h3>Configure & Purchase Pixel</h3>
-            <p>Selected Position: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
+            <h3>إعداد وشراء البيكسل</h3>
+            <p>الموقع المحدد: <strong id="selected-coords" style="color: #d4af37;">X: 0, Y: 0</strong></p>
             
             <div class="guide-text">
                 <strong>💡 إرشادات الدفع للجوال:</strong><br>
                 قم بفتح الموقع من متصفح محفظة MetaMask أو Trust Wallet ليعمل الدفع التلقائي بنجاح.
             </div>
 
-            <input type="text" id="pixel-link" placeholder="Your Website URL (https://...)">
-            <input type="text" id="pixel-image" placeholder="Direct Image URL (.png/.jpg)">
+            <input type="text" id="pixel-link" placeholder="رابط موقعك الإعلاني (https://...)">
+            <input type="text" id="pixel-image" placeholder="رابط مباشر للشعار الإعلاني (.png/.jpg)">
             
             <div class="wallet-options">
-                <button id="btn-pay-now" class="btn-pay btn-mm">Pay & Launch (1 POL)</button>
-                <button id="close-btn" class="btn-pay btn-close">Cancel</button>
+                <button id="btn-pay-now" class="btn-pay btn-mm">دفع وتشغيل الإعلان (1 POL)</button>
+                <button id="close-btn" class="btn-pay btn-close">إلغاء</button>
             </div>
         </div>
     </div>
@@ -97,7 +98,11 @@
         // تنبيه هام جداً: تأكد من تغيير هذا الرابط برابط الفايربيس الخاص بك
         const FIREBASE_URL = "https://firebaseio.com"; 
         const MY_WALLET_ADDRESS = "0x59BbA169436DD168499aA0808f5d2d0756ae4c83"; 
-        const PIXEL_SIZE = 15;
+        
+        // الأبعاد القياسية الجديدة المعدلة (20 بيكسل بدلاً من 15)
+        const PIXEL_SIZE = 20;
+        const BOARD_WIDTH = 800;
+        const BOARD_HEIGHT = 800;
 
         const pixelBoard = document.getElementById('pixel-board');
         const paymentModal = document.getElementById('payment-modal');
@@ -117,7 +122,6 @@
                 if (!data) return;
                 takenPixels = data; 
                 
-                // تنظيف البيكسلات القديمة لتجنب التكرار
                 const oldPixels = pixelBoard.querySelectorAll('.user-pixel');
                 oldPixels.forEach(el => el.remove());
 
@@ -131,7 +135,6 @@
                     pixelDiv.style.left = `${x}px`;
                     pixelDiv.style.top = `${y}px`;
 
-                    // الكود المصلح: إضافة الرابط والصورة وجعلها قابلة للضغط 100%
                     pixelDiv.innerHTML = `<a href="${p.link}" target="_blank" rel="noopener"><img src="${p.image}"></a>`;
                     pixelBoard.appendChild(pixelDiv);
                 });
@@ -140,7 +143,7 @@
 
         loadPixelsFromFirebase();
 
-        // الدالة المحدثة بدقة شديدة لاحتساب احداثيات الجوال والكمبيوتر ومقاومة التزحزح
+        // الدالة المحدثة بدقة لاحتساب الإحداثيات الجديدة ومقاومة التزحزح بالجوال
         function handleInteraction(clientX, clientY) {
             const rect = pixelBoard.getBoundingClientRect();
             const clickX = clientX - rect.left;
@@ -149,9 +152,9 @@
             currentX = Math.floor(clickX / PIXEL_SIZE) * PIXEL_SIZE;
             currentY = Math.floor(clickY / PIXEL_SIZE) * PIXEL_SIZE;
 
-            if (currentX < 0 || currentX >= 750 || currentY < 0 || currentY >= 750) return;
+            if (currentX < 0 || currentX >= BOARD_WIDTH || currentY < 0 || currentY >= BOARD_HEIGHT) return;
 
-            // إذا كان البيكسل محجوزاً، لا تفعل شيئاً واترك المتصفح يفتح رابط العميل تلقائياً
+            // إذا كان البيكسل محجوزاً مسبقاً، نتركه ليتولى الرابط نقله تلقائياً ولا نفتح نافذة الدفع
             if (takenPixels[`${currentX}_${currentY}`]) {
                 return; 
             }
@@ -160,23 +163,22 @@
             paymentModal.style.display = 'flex';
         }
 
-        // إصلاح حدث النقر الموحد للجوال والكمبيوتر
+        // معالجة الضغطات للكمبيوتر والجوال وحفظ استجابة الروابط
         pixelBoard.addEventListener('click', function(e) {
-            // إذا كان الضغط على بيكسل للعميل، اتركه يفتح الرابط ولا تفتح نافذة الشراء
             if (e.target !== pixelBoard) return; 
             handleInteraction(e.clientX, e.clientY);
         });
 
         pixelBoard.addEventListener('touchend', function(e) {
             if (e.target !== pixelBoard) return;
-            e.preventDefault(); // منع المتصفح من عمل نقرة مزدوجة وهمية
+            e.preventDefault(); 
             const touch = e.changedTouches[0];
             handleInteraction(touch.clientX, touch.clientY);
         });
 
         closeButton.onclick = () => paymentModal.style.display = 'none';
 
-        // نظام الدفع التلقائي والحفظ الفوري بدون تدخل
+        // الدفع التلقائي وحفظ البيانات فورا بعد نجاح العملية
         btnPayNow.onclick = async () => {
             const clientLink = document.getElementById('pixel-link').value.trim();
             const clientImage = document.getElementById('pixel-image').value.trim();
@@ -201,14 +203,13 @@
 
                 btnPayNow.innerText = "برجاء تأكيد الدفع (1 POL)...";
 
-                // الدفع التلقائي الفوري إلى محفظتك المذكورة بالأعلى
                 const tx = await signer.sendTransaction({
                     to: MY_WALLET_ADDRESS,
                     value: ethers.utils.parseEther("1.0") 
                 });
 
                 btnPayNow.innerText = "جاري تأكيد المعاملة على الشبكة...";
-                await tx.wait(); // الانتظار حتى تنجح العملية على البلوكتشين
+                await tx.wait(); 
 
                 btnPayNow.innerText = "جاري حفظ البيكسل وتحديث الموقع...";
 
@@ -220,9 +221,14 @@
                     txHash: tx.hash
                 };
 
-                // حفظ تلقائي مباشر في قاعدة بيانات الفايربيس
                 await fetch(`${FIREBASE_URL}/pixels.json`, {
                     method: 'PATCH',
                     body: JSON.stringify(newPixelData)
                 });
 
+                alert("تهانينا! تم الشراء بنجاح وتحديث البيكسل الخاص بك تلقائياً.");
+                paymentModal.style.display = 'none';
+                loadPixelsFromFirebase(); 
+
+            } catch (error) {
+                console.error(error);
